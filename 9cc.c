@@ -35,6 +35,7 @@ struct Node {
 
 Node *expr(void);
 Node *term(void);
+Node *unary(void);
 Node *factor(void);
 
 char *user_input;
@@ -144,16 +145,22 @@ Node *expr(void) {
 }
 
 Node *term(void) {
-    Node *node = factor();
+    Node *node = unary();
 
     while (true) {
         if (consume('*'))
-            node = new_node(ND_MUL, node, factor());
+            node = new_node(ND_MUL, node, unary());
         else if (consume('/'))
-            node = new_node(ND_DIV, node, factor());
+            node = new_node(ND_DIV, node, unary());
         else
             return node;
     }
+}
+
+Node *unary(void) {
+    if (consume('-')) return new_node(ND_SUB, new_node_num(0), factor());
+    consume('+');
+    return factor();
 }
 
 Node *factor(void) {
