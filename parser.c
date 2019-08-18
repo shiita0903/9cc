@@ -1,5 +1,7 @@
 #include "9cc.h"
 
+Node *stmt(void);
+Node *expr(void);
 Node *equality(void);
 Node *relational(void);
 Node *add(void);
@@ -22,8 +24,32 @@ Node *new_node_num(int val) {
     return node;
 }
 
+Node *new_node_ident(int offset) {
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_LVAR;
+    node->offset = offset;
+    return node;
+}
+
+void program(Node **nodes) {
+    int i = 0;
+    while (!at_eof())
+        nodes[i++] = stmt();
+    nodes[i] = NULL;
+}
+
+Node *stmt(void) {
+    Node *node = expr();
+    expect(";");
+    return node;
+}
+
 Node *expr(void) {
-    return equality();
+    Node *node = equality();
+    while (consume("=")) {
+        node = new_node(ND_ASSIGN, node, equality());
+    }
+    return node;
 }
 
 Node *equality(void) {
@@ -94,6 +120,9 @@ Node *factor(void) {
         expect(")");
         return node;
     }
+
+    int offset;
+    if (consume_ident(&offset)) return new_node_ident(offset);
 
     return new_node_num(expect_number());
 }
