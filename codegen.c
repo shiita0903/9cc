@@ -94,7 +94,7 @@ void code_gen(Node **nodes) {
     // 変数の領域確保。一時的な処理
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    printf("  sub rsp, 208\n");
+    printf("  sub rsp, %d\n", 8 * lvar_count());
 
     while (*nodes != NULL) {
         gen(*nodes);

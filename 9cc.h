@@ -46,7 +46,15 @@ struct Node {
     int val, offset;
 };
 
+typedef struct LVar LVar;
+struct LVar {
+    LVar *next;
+    char *name;
+    int len, offset;
+};
+
 // tokenizer.c
+int lvar_count(void);
 void *tokenize(char *p);
 bool consume(char *op);
 bool consume_ident(int *offset);
