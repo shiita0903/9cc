@@ -41,11 +41,49 @@ void program(Node **nodes) {
 Node *stmt(void) {
     Node *node;
 
-    if (consume("return"))
+    if (consume("if")) {
+        expect("(");
+        Node *e = expr();
+        expect(")");
+        Node *s1, *s2 = NULL;
+        s1 = stmt();
+        if (consume("else")) s2 = stmt();
+        node = new_node(ND_IF, s1, s2);
+        node = new_node(ND_IF, e, node);
+    }
+    else if (consume("while")) {
+        expect("(");
+        Node *e = expr();
+        expect(")");
+        node = new_node(ND_WHILE, e, stmt());
+    }
+    else if (consume("for")) {
+        expect("(");
+        Node *e1 = NULL, *e2 = NULL, *e3 = NULL;
+        if (!consume(";")) {
+            e1 = expr();
+            expect(";");
+        }
+        if (!consume(";")) {
+            e2 = expr();
+            expect(";");
+        }
+        if (!consume(")")) {
+            e3 = expr();
+            expect(")");
+        }
+        node = new_node(ND_FOR, e1, e2);
+        node = new_node(ND_FOR, node, e3);
+        node = new_node(ND_FOR, node, stmt());
+    }
+    else if (consume("return")) {
         node = new_node(ND_RETURN, expr(), NULL);
-    else
+        expect(";");
+    }
+    else {
         node = expr();
-    expect(";");
+        expect(";");
+    }
     return node;
 }
 

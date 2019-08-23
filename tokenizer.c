@@ -42,8 +42,17 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
     return tok;
 }
 
-bool is_return(char *p) {
-    return strncmp(p, "return", 6) == 0 && !isalnum(p[6]) && p[6] != '_';
+/** 予約語だった場合には文字数を、そうでないなら0を返す */
+int is_reserved_word(char *p) {
+    char *words[5] = { "return", "if", "else", "while", "for" };
+    int word_sizes[5] = { 6, 2, 4, 5, 3};
+    for (int i = 0; i < 5; i++) {
+        char *w = words[i];
+        int ws = word_sizes[i];
+        if (!memcmp(p, w, ws) && !isalnum(p[ws]) && p[ws] != '_')
+            return ws;
+    }
+    return 0;
 }
 
 bool double_symbol_op(char *p) {
@@ -77,15 +86,16 @@ void *tokenize(char *p) {
     head.next = NULL;
     Token *cur = &head;
 
+    int len;
     while (*p) {
         if (isspace(*p)) {
             p++;
             continue;
         }
 
-        if (is_return(p)) {
-            cur = new_token(TK_RESERVED, cur, p, 6);
-            p += 6;
+        if ((len = is_reserved_word(p)) > 0) {
+            cur = new_token(TK_RESERVED, cur, p, len);
+            p += len;
             continue;
         }
 
@@ -106,9 +116,13 @@ void *tokenize(char *p) {
             continue;
         }
 
-        int len = ident_len(p);
-        cur = new_token(TK_IDENT, cur, p, len);
-        p += len;
+        if ((len = ident_len(p)) > 0) {
+            cur = new_token(TK_IDENT, cur, p, len);
+            p += len;
+            continue;
+        }
+
+        error("トークナイズに失敗しました");
     }
 
     new_token(TK_EOF, cur, p, 1);

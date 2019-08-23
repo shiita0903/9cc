@@ -1,5 +1,7 @@
 #include "9cc.h"
 
+long long if_sn = 0, while_sn = 0, for_sn = 0;
+
 void gen_lval(Node *node) {
     if (node->kind != ND_LVAR) error("代入の左辺値が変数ではありません");
 
@@ -9,6 +11,8 @@ void gen_lval(Node *node) {
 }
 
 void gen(Node *node) {
+    if (node == NULL) return;
+
     switch (node->kind) {
     case ND_NUM:
         printf("  push %d\n", node->val);
@@ -28,6 +32,50 @@ void gen(Node *node) {
         printf("  pop rax\n");
         printf("  mov [rax], rdi\n");
         printf("  push rdi\n");
+        return;
+    case ND_IF:
+        gen(node->lhs);
+
+        printf("  pop rax\n");
+        printf("  cmp rax, 0\n");
+        if (node->rhs->rhs == NULL) {
+            printf("  je .Lend_if_%lld\n", if_sn);
+            gen(node->rhs->lhs);
+            printf(".Lend_if_%lld:\n", if_sn);
+        }
+        else {
+            printf("  je .Lelse_if_%lld\n", if_sn);
+            gen(node->rhs->lhs);
+            printf("jmp .Lend_if_%lld\n", if_sn);
+            printf(".Lelse_if_%lld:\n", if_sn);
+            gen(node->rhs->rhs);
+            printf(".Lend_if_%lld:\n", if_sn);
+        }
+        if_sn++;
+        return;
+    case ND_WHILE:
+        printf(".Lbegin_while_%lld:\n", while_sn);
+        gen(node->lhs);
+        printf("  pop rax\n");
+        printf("  cmp rax, 0\n");
+        printf("  je .Lend_while_%lld\n", while_sn);
+        gen(node->rhs);
+        printf("  jmp .Lbegin_while_%lld\n", while_sn);
+        printf(".Lend_while_%lld:\n", while_sn);
+        while_sn++;
+        return;
+    case ND_FOR:
+        gen(node->lhs->lhs->lhs);
+        printf(".Lbegin_for_%lld:\n", for_sn);
+        gen(node->lhs->lhs->rhs);
+        printf("  pop rax\n");
+        printf("  cmp rax, 0\n");
+        printf("  je .Lend_for_%lld\n", for_sn);
+        gen(node->rhs);
+        gen(node->lhs->rhs);
+        printf("  jmp .Lbegin_for_%lld\n", for_sn);
+        printf(".Lend_for_%lld:\n", for_sn);
+        for_sn++;
         return;
     case ND_RETURN:
         gen(node->lhs);
@@ -99,7 +147,6 @@ void code_gen(Node **nodes) {
     printf(".global main\n");
     printf("main:\n");
 
-    // TODO: この辺りの余分な処理はとりあえず残しておく
     // 変数の領域確保。一時的な処理
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
@@ -110,8 +157,4 @@ void code_gen(Node **nodes) {
         printf("  pop rax\n");  // スタックのゴミ削除 && 戻り値のセット
         nodes++;
     }
-
-    printf("  mov rsp, rbp\n");
-    printf("  pop rbp\n");
-    printf("  ret\n");
 }
