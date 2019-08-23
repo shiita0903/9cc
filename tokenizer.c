@@ -62,8 +62,8 @@ bool double_symbol_op(char *p) {
 }
 
 bool single_symbol_op(char *p) {
-    char ops[12] = "+-*/<>()=;{}";
-    for (int i = 0; i < 12; i++) if (*p == ops[i]) return true;
+    char ops[13] = "+-*/<>()=;{},";
+    for (int i = 0; i < 13; i++) if (*p == ops[i]) return true;
     return false;
 }
 

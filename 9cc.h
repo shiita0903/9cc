@@ -48,7 +48,7 @@ typedef enum {
 typedef struct Node Node;
 struct Node {
     NodeKind kind;
-    // ND_BLOCKの時にnextを使う
+    // ND_BLOCKやND_FUNCの時にnextを使う
     Node *lhs, *rhs, *next;
     int val, offset;
     char *name;

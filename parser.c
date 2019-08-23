@@ -182,11 +182,19 @@ Node *factor(void) {
     int len;
     char *name;
     if (consume_func(&name, &len)) {
-        // とりあえず引数なし
+        Node n, *cur = &n;
+        n.next = NULL;
+
         expect("(");
-        expect(")");
-        // printf("parser name = %s\n", name);
-        return new_node_func(name, len);
+        if (!consume(")")) {
+            cur = new_node(ND_FUNC, expr(), NULL, cur);
+            while (consume(",")) cur = new_node(ND_FUNC, expr(), NULL, cur);
+            expect(")");
+        }
+
+        Node *node = new_node_func(name, len);
+        node->next = n.next;
+        return node;
     }
 
     int offset;

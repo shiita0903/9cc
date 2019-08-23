@@ -17,9 +17,32 @@ void gen(Node *node) {
     case ND_NUM:
         printf("  push %d\n", node->val);
         return;
-    case ND_FUNC:
-        printf("  call %.*s\n", node->len, node->name);
+    case ND_FUNC: {
+        int arg_num = 0;
+        char *name = node->name;
+        name[node->len] = '\0';
+        char *r_name[6] = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
+
+        node = node->next;
+        while (node != NULL) {
+            gen(node->lhs);
+            node = node->next;
+            arg_num++;
+        }
+
+        for (int i = arg_num - 1; i >= 0 ; i--)
+            printf("  pop %s\n", r_name[i]);
+
+        // RSPを16の倍数にする処理
+        printf("  push rsp\n");
+        printf("  shr rsp, 4\n");
+        printf("  shl rsp, 4\n");
+        printf("  call %s\n", name);
+        // RSPを戻す処理。多分間違っている
+        printf("  pop rax\n");
+        printf("  pop rsp\n");
         return;
+    }
     case ND_LVAR:
         gen_lval(node);
 
@@ -167,4 +190,8 @@ void code_gen(Node **nodes) {
         printf("  pop rax\n");  // スタックのゴミ削除 && 戻り値のセット
         nodes++;
     }
+
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
 }
