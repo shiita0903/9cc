@@ -42,6 +42,7 @@ typedef enum {
     ND_FOR,
     ND_RETURN,
     ND_BLOCK,
+    ND_FUNC,
 } NodeKind;
 
 typedef struct Node Node;
@@ -50,6 +51,8 @@ struct Node {
     // ND_BLOCKの時にnextを使う
     Node *lhs, *rhs, *next;
     int val, offset;
+    char *name;
+    int len;
 };
 
 typedef struct LVar LVar;
@@ -63,6 +66,7 @@ struct LVar {
 int lvar_count(void);
 void *tokenize(char *p);
 bool consume(char *op);
+bool consume_func(char **name, int *len);
 bool consume_ident(int *offset);
 void expect(char *op);
 int expect_number(void);

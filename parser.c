@@ -26,6 +26,14 @@ Node *new_node_num(int val) {
     return node;
 }
 
+Node *new_node_func(char *name, int len) {
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_FUNC;
+    node->name = name;
+    node->len = len;
+    return node;
+}
+
 Node *new_node_ident(int offset) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_LVAR;
@@ -169,6 +177,16 @@ Node *factor(void) {
         Node *node = expr();
         expect(")");
         return node;
+    }
+
+    int len;
+    char *name;
+    if (consume_func(&name, &len)) {
+        // とりあえず引数なし
+        expect("(");
+        expect(")");
+        // printf("parser name = %s\n", name);
+        return new_node_func(name, len);
     }
 
     int offset;

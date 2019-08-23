@@ -138,6 +138,20 @@ bool consume(char *op) {
     return true;
 }
 
+bool consume_func(char **name, int *len) {
+    if (token->kind != TK_IDENT) return false;
+
+    if (token->next->kind == TK_RESERVED &&
+        token->next->str[0] == '(') {
+        *name = token->str;
+        *len = token->len;
+    }
+    else return false;
+
+    token = token->next;
+    return true;
+}
+
 bool consume_ident(int *offset) {
     if (token->kind != TK_IDENT) return false;
 
