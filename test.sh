@@ -42,5 +42,12 @@ try 6 '
 foo = 1;
 bar = 2 + 3;
 foo + bar;'
+try 1 'return 1;'
+try 10 '
+return 10;
+3;'
+try 3 '
+return10 = 3;
+return return10;'
 
 echo OK

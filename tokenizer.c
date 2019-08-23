@@ -42,6 +42,10 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
     return tok;
 }
 
+bool is_return(char *p) {
+    return strncmp(p, "return", 6) == 0 && !isalnum(p[6]) && p[6] != '_';
+}
+
 bool double_symbol_op(char *p) {
     char *ops[4] = { "==", "!=", "<=", ">=" };
     for (int i = 0; i < 4; i++) if (!memcmp(p, ops[i], 2)) return true;
@@ -56,8 +60,8 @@ bool single_symbol_op(char *p) {
 
 int ident_len(char *p) {
     int len = 0;
-    while (p[len] != '\0' && !isspace(p[len]) && !double_symbol_op(p + len) &&
-           !single_symbol_op(p + len) && !isdigit(p[len])) len++;
+    while (p[len] != '\0' && !isspace(p[len]) &&
+           !double_symbol_op(p + len)  && !single_symbol_op(p + len)) len++;
     return len;
 }
 
@@ -76,6 +80,12 @@ void *tokenize(char *p) {
     while (*p) {
         if (isspace(*p)) {
             p++;
+            continue;
+        }
+
+        if (is_return(p)) {
+            cur = new_token(TK_RESERVED, cur, p, 6);
+            p += 6;
             continue;
         }
 

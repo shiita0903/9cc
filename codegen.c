@@ -29,6 +29,14 @@ void gen(Node *node) {
         printf("  mov [rax], rdi\n");
         printf("  push rdi\n");
         return;
+    case ND_RETURN:
+        gen(node->lhs);
+
+        printf("  pop rax\n");
+        printf("  mov rsp, rbp\n");
+        printf("  pop rbp\n");
+        printf("  ret\n");
+        return;
     }
 
     gen(node->lhs);
@@ -91,6 +99,7 @@ void code_gen(Node **nodes) {
     printf(".global main\n");
     printf("main:\n");
 
+    // TODO: この辺りの余分な処理はとりあえず残しておく
     // 変数の領域確保。一時的な処理
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
