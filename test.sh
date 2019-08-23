@@ -72,5 +72,6 @@ for (i = 0; i <= 10; i = i + 1) if (i < 5) ans = ans + i;
 j = 0;
 while (j < 10) j = j + 1;
 return ans;'
+try 5 '{ i = 0; j = 3; i = j + 2; return i; }'
 
 echo OK

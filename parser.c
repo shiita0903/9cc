@@ -9,11 +9,13 @@ Node *mul(void);
 Node *unary(void);
 Node *factor(void);
 
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
+Node *new_node(NodeKind kind, Node *lhs, Node *rhs, Node *cur) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = kind;
     node->lhs = lhs;
     node->rhs = rhs;
+    node->next = NULL;
+    if (cur != NULL) cur->next = node;
     return node;
 }
 
@@ -48,14 +50,14 @@ Node *stmt(void) {
         Node *s1, *s2 = NULL;
         s1 = stmt();
         if (consume("else")) s2 = stmt();
-        node = new_node(ND_IF, s1, s2);
-        node = new_node(ND_IF, e, node);
+        node = new_node(ND_IF, s1, s2, NULL);
+        node = new_node(ND_IF, e, node, NULL);
     }
     else if (consume("while")) {
         expect("(");
         Node *e = expr();
         expect(")");
-        node = new_node(ND_WHILE, e, stmt());
+        node = new_node(ND_WHILE, e, stmt(), NULL);
     }
     else if (consume("for")) {
         expect("(");
@@ -72,12 +74,17 @@ Node *stmt(void) {
             e3 = expr();
             expect(")");
         }
-        node = new_node(ND_FOR, e1, e2);
-        node = new_node(ND_FOR, node, e3);
-        node = new_node(ND_FOR, node, stmt());
+        node = new_node(ND_FOR, e1, e2, NULL);
+        node = new_node(ND_FOR, node, e3, NULL);
+        node = new_node(ND_FOR, node, stmt(), NULL);
+    }
+    else if (consume("{")) {
+        Node n, *cur = &n;
+        while (!consume("}")) cur = new_node(ND_BLOCK, stmt(), NULL, cur);
+        node = n.next;
     }
     else if (consume("return")) {
-        node = new_node(ND_RETURN, expr(), NULL);
+        node = new_node(ND_RETURN, expr(), NULL, NULL);
         expect(";");
     }
     else {
@@ -90,7 +97,7 @@ Node *stmt(void) {
 Node *expr(void) {
     Node *node = equality();
     while (consume("=")) {
-        node = new_node(ND_ASSIGN, node, equality());
+        node = new_node(ND_ASSIGN, node, equality(), NULL);
     }
     return node;
 }
@@ -100,9 +107,9 @@ Node *equality(void) {
 
     while (true) {
         if (consume("=="))
-            node = new_node(ND_EQ, node, relational());
+            node = new_node(ND_EQ, node, relational(), NULL);
         else if (consume("!="))
-            node = new_node(ND_NE, node, relational());
+            node = new_node(ND_NE, node, relational(), NULL);
         else
             return node;
     }
@@ -113,13 +120,13 @@ Node *relational(void) {
 
     while (true) {
         if (consume(">="))
-            node = new_node(ND_GE, node, add());
+            node = new_node(ND_GE, node, add(), NULL);
         else if (consume("<="))
-            node = new_node(ND_LE, node, add());
+            node = new_node(ND_LE, node, add(), NULL);
         else if (consume(">"))
-            node = new_node(ND_GT, node, add());
+            node = new_node(ND_GT, node, add(), NULL);
         else if (consume("<"))
-            node = new_node(ND_LT, node, add());
+            node = new_node(ND_LT, node, add(), NULL);
         else
             return node;
     }
@@ -130,9 +137,9 @@ Node *add(void) {
 
     while (true) {
         if (consume("+"))
-            node = new_node(ND_ADD, node, mul());
+            node = new_node(ND_ADD, node, mul(), NULL);
         else if (consume("-"))
-            node = new_node(ND_SUB, node, mul());
+            node = new_node(ND_SUB, node, mul(), NULL);
         else
             return node;
     }
@@ -143,16 +150,16 @@ Node *mul(void) {
 
     while (true) {
         if (consume("*"))
-            node = new_node(ND_MUL, node, unary());
+            node = new_node(ND_MUL, node, unary(), NULL);
         else if (consume("/"))
-            node = new_node(ND_DIV, node, unary());
+            node = new_node(ND_DIV, node, unary(), NULL);
         else
             return node;
     }
 }
 
 Node *unary(void) {
-    if (consume("-")) return new_node(ND_SUB, new_node_num(0), factor());
+    if (consume("-")) return new_node(ND_SUB, new_node_num(0), factor(), NULL);
     consume("+");
     return factor();
 }

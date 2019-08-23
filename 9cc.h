@@ -41,12 +41,14 @@ typedef enum {
     ND_WHILE,
     ND_FOR,
     ND_RETURN,
+    ND_BLOCK,
 } NodeKind;
 
 typedef struct Node Node;
 struct Node {
     NodeKind kind;
-    Node *lhs, *rhs;
+    // ND_BLOCKの時にnextを使う
+    Node *lhs, *rhs, *next;
     int val, offset;
 };
 
