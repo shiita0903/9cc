@@ -157,8 +157,8 @@ bool consume_ident(int *offset) {
 
     LVar *var = find_lvar(token);
     if (var == NULL) var = new_lvar(token);
-    token = token->next;
     *offset = var->offset;
+    token = token->next;
     return true;
 }
 
@@ -176,6 +176,26 @@ int expect_number(void) {
     int val = token->val;
     token = token->next;
     return val;
+}
+
+void expect_func_def(char **name, int *len) {
+    if (token->kind != TK_IDENT ||
+        token->next->kind != TK_RESERVED ||
+        token->next->str[0] != '(')
+        error_at(token->str, "関数定義ではありません");
+
+    *name = token->str;
+    *len = token->len;
+    token = token->next;
+}
+
+void expect_ident(int *offset) {
+    if (token->kind != TK_IDENT)
+        error_at(token->str, "関数の引数ではありません");
+
+    LVar *var = new_lvar(token);
+    *offset = var->offset;
+    token = token->next;
 }
 
 bool at_eof(void) {

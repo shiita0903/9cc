@@ -13,15 +13,17 @@ void gen_lval(Node *node) {
 void gen(Node *node) {
     if (node == NULL) return;
 
+    int arg_num;
+    char *r_name[6] = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
+
     switch (node->kind) {
     case ND_NUM:
         printf("  push %d\n", node->val);
         return;
-    case ND_FUNC: {
-        int arg_num = 0;
+    case ND_FUNC:
+        arg_num = 0;
         char *name = node->name;
         name[node->len] = '\0';
-        char *r_name[6] = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
 
         node = node->next;
         while (node != NULL) {
@@ -33,16 +35,10 @@ void gen(Node *node) {
         for (int i = arg_num - 1; i >= 0 ; i--)
             printf("  pop %s\n", r_name[i]);
 
-        // RSPを16の倍数にする処理
-        printf("  push rsp\n");
-        printf("  shr rsp, 4\n");
-        printf("  shl rsp, 4\n");
+        // TODO: RSPを16の倍数にする処理が必要らしい
         printf("  call %s\n", name);
-        // RSPを戻す処理。多分間違っている
-        printf("  pop rax\n");
-        printf("  pop rsp\n");
+        printf("  push rax\n");
         return;
-    }
     case ND_LVAR:
         gen_lval(node);
 
@@ -118,6 +114,25 @@ void gen(Node *node) {
         printf("  pop rbp\n");
         printf("  ret\n");
         return;
+    case ND_FUNC_DEF:
+        arg_num = 0;
+        printf("%.*s:\n", node->len, node->name);
+        printf("  push rbp\n");
+        printf("  mov rbp, rsp\n");
+        printf("  sub rsp, %d\n", 8 * lvar_count());
+
+        node = node->next;
+        while (node->kind == ND_FUNC_DEF) {
+            printf("  mov rax, rbp\n");
+            printf("  sub rax, %d\n", node->offset);
+            printf("  mov [rax], %s\n", r_name[arg_num++]);
+            node = node->next;
+        }
+        while (node != NULL) {
+            gen(node);
+            node = node->next;
+        }
+        return;
     }
 
     gen(node->lhs);
@@ -178,20 +193,7 @@ void gen(Node *node) {
 void code_gen(Node **nodes) {
     printf(".intel_syntax noprefix\n");
     printf(".global main\n");
-    printf("main:\n");
 
-    // 変数の領域確保。一時的な処理
-    printf("  push rbp\n");
-    printf("  mov rbp, rsp\n");
-    printf("  sub rsp, %d\n", 8 * lvar_count());
-
-    while (*nodes != NULL) {
-        gen(*nodes);
-        printf("  pop rax\n");  // スタックのゴミ削除 && 戻り値のセット
-        nodes++;
-    }
-
-    printf("  mov rsp, rbp\n");
-    printf("  pop rbp\n");
-    printf("  ret\n");
+    for (Node **n = nodes; *n != NULL; n++)
+        gen(*n);
 }

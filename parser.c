@@ -1,5 +1,6 @@
 #include "9cc.h"
 
+Node *func(void);
 Node *stmt(void);
 Node *expr(void);
 Node *equality(void);
@@ -14,7 +15,6 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs, Node *cur) {
     node->kind = kind;
     node->lhs = lhs;
     node->rhs = rhs;
-    node->next = NULL;
     if (cur != NULL) cur->next = node;
     return node;
 }
@@ -26,17 +26,17 @@ Node *new_node_num(int val) {
     return node;
 }
 
-Node *new_node_func(char *name, int len) {
+Node *new_node_func(NodeKind kind, char *name, int len) {
     Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_FUNC;
+    node->kind = kind;
     node->name = name;
     node->len = len;
     return node;
 }
 
-Node *new_node_ident(int offset) {
+Node *new_node_ident(NodeKind kind, int offset) {
     Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_LVAR;
+    node->kind = kind;
     node->offset = offset;
     return node;
 }
@@ -44,8 +44,34 @@ Node *new_node_ident(int offset) {
 void program(Node **nodes) {
     int i = 0;
     while (!at_eof())
-        nodes[i++] = stmt();
+        nodes[i++] = func();
     nodes[i] = NULL;
+}
+
+Node *func(void) {
+    char *name;
+    int len;
+    expect_func_def(&name, &len);
+    Node *node = new_node_func(ND_FUNC_DEF, name, len);
+    Node *cur = node;
+
+    expect("(");
+    if (!consume(")")) {
+        int offset;
+        do {
+            expect_ident(&offset);
+            cur->next = new_node_ident(ND_FUNC_DEF, offset);
+            cur = cur->next;
+        } while (consume(","));
+        expect(")");
+    }
+
+    expect("{");
+    while (!consume("}")) {
+        cur->next = stmt();
+        cur = cur->next;
+    }
+    return node;
 }
 
 Node *stmt(void) {
@@ -187,18 +213,19 @@ Node *factor(void) {
 
         expect("(");
         if (!consume(")")) {
-            cur = new_node(ND_FUNC, expr(), NULL, cur);
-            while (consume(",")) cur = new_node(ND_FUNC, expr(), NULL, cur);
+            do {
+                cur = new_node(ND_FUNC, expr(), NULL, cur);
+            } while (consume(","));
             expect(")");
         }
 
-        Node *node = new_node_func(name, len);
+        Node *node = new_node_func(ND_FUNC, name, len);
         node->next = n.next;
         return node;
     }
 
     int offset;
-    if (consume_ident(&offset)) return new_node_ident(offset);
+    if (consume_ident(&offset)) return new_node_ident(ND_LVAR, offset);
 
     return new_node_num(expect_number());
 }

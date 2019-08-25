@@ -7,6 +7,8 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
+#define MAX_FUNC_COUNT 1000     // 定義可能な関数の数
+
 typedef enum {
     TK_RESERVED,
     TK_IDENT,
@@ -43,6 +45,7 @@ typedef enum {
     ND_RETURN,
     ND_BLOCK,
     ND_FUNC,
+    ND_FUNC_DEF,
 } NodeKind;
 
 typedef struct Node Node;
@@ -70,6 +73,9 @@ bool consume_func(char **name, int *len);
 bool consume_ident(int *offset);
 void expect(char *op);
 int expect_number(void);
+void expect_func_name(char **name, int *len);
+void expect_func_def(char **name, int *len);
+void expect_ident(int *offset);
 bool at_eof(void);
 
 // parser.c
