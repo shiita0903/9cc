@@ -10,22 +10,6 @@
 #define MAX_FUNC_COUNT 1000     // 定義可能な関数の数
 
 typedef enum {
-    TK_RESERVED,
-    TK_IDENT,
-    TK_NUM,
-    TK_EOF,
-} TokenKind;
-
-typedef struct Token Token;
-struct Token {
-    TokenKind kind;
-    Token *next;
-    int val;
-    char *str;
-    int len;
-};
-
-typedef enum {
     ND_ADD,
     ND_SUB,
     ND_MUL,
@@ -58,15 +42,9 @@ struct Node {
     int len;
 };
 
-typedef struct LVar LVar;
-struct LVar {
-    LVar *next;
-    char *name;
-    int len, offset;
-};
-
 // tokenizer.c
 int lvar_count(void);
+void clear_lvar(void);
 void *tokenize(char *p);
 bool consume(char *op);
 bool consume_func(char **name, int *len);

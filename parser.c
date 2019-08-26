@@ -71,6 +71,8 @@ Node *func(void) {
         cur->next = stmt();
         cur = cur->next;
     }
+    node->lhs = new_node_num(lvar_count());     // 引数とローカル変数の個数を保持
+    clear_lvar();
     return node;
 }
 

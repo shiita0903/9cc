@@ -1,5 +1,28 @@
 #include "9cc.h"
 
+typedef enum {
+    TK_RESERVED,
+    TK_IDENT,
+    TK_NUM,
+    TK_EOF,
+} TokenKind;
+
+typedef struct Token Token;
+struct Token {
+    TokenKind kind;
+    Token *next;
+    int val;
+    char *str;
+    int len;
+};
+
+typedef struct LVar LVar;
+struct LVar {
+    LVar *next;
+    char *name;
+    int len, offset;
+};
+
 Token *token;
 char *user_input;
 LVar *locals;
@@ -78,6 +101,16 @@ int lvar_count(void) {
     int cnt = 0;
     for (LVar *var = locals; var != NULL; var = var->next) cnt++;
     return cnt;
+}
+
+void clear_lvar(void) {
+    LVar *var = locals;
+    while (var != NULL) {
+        LVar *tmp = var->next;
+        free(var);
+        var = tmp;
+    }
+    locals = NULL;
 }
 
 void *tokenize(char *p) {

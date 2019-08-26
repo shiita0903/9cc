@@ -119,7 +119,7 @@ void gen(Node *node) {
         printf("%.*s:\n", node->len, node->name);
         printf("  push rbp\n");
         printf("  mov rbp, rsp\n");
-        printf("  sub rsp, %d\n", 8 * lvar_count());
+        printf("  sub rsp, %d\n", 8 * node->lhs->val);
 
         node = node->next;
         while (node->kind == ND_FUNC_DEF) {
