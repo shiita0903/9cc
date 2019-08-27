@@ -19,6 +19,7 @@ struct Token {
 typedef struct LVar LVar;
 struct LVar {
     LVar *next;
+    Type *type;
     char *name;
     int len, offset;
 };
@@ -40,6 +41,17 @@ void error_at(char *loc, char *fmt, ...) {
     exit(1);
 }
 
+Type *new_type(TypeKeyword t_kw) {
+    Type *type = calloc(1, sizeof(Type));
+    type->t_kw = t_kw;
+}
+
+Type *new_ptr_type(Type *type) {
+    Type *t = new_type(PTR);
+    t->ptr_to = type;
+    return t;
+}
+
 LVar *find_lvar(Token *tok) {
     for (LVar *var = locals; var != NULL; var = var->next)
         if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
@@ -47,12 +59,15 @@ LVar *find_lvar(Token *tok) {
     return NULL;
 }
 
-LVar *new_lvar(Token *tok) {
+LVar *new_lvar(Token *tok, int p_count) {
     LVar *var = calloc(1, sizeof(LVar));
     var->next = locals;
     var->name = tok->str;
     var->len = tok->len;
     var->offset = (locals == NULL) ? 8 : locals->offset + 8;
+
+    var->type = new_type(INT);
+    for (int i = 0; i < p_count; i++) var->type = new_ptr_type(var->type);
     return locals = var;
 }
 
@@ -185,12 +200,13 @@ bool consume_func(char **name, int *len) {
     return true;
 }
 
-bool consume_ident(int *offset) {
+bool consume_ident(int *offset, Type *type) {
     if (token->kind != TK_IDENT) return false;
 
     LVar *var = find_lvar(token);
     if (var == NULL) error_at(token->str, "定義されていない変数です");
     *offset = var->offset;
+    *type = *var->type;
     token = token->next;
     return true;
 }
@@ -222,12 +238,13 @@ void expect_func_def(char **name, int *len) {
     token = token->next;
 }
 
-void define_local_variable(int *offset) {
+void define_local_variable(int p_count, int *offset, Type *type) {
     if (token->kind != TK_IDENT)
         error_at(token->str, "変数ではありません");
 
-    LVar *var = new_lvar(token);
+    LVar *var = new_lvar(token, p_count);
     if (offset != NULL) *offset = var->offset;
+    if (type != NULL) *type = *var->type;
     token = token->next;
 }
 

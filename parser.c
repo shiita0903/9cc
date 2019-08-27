@@ -34,10 +34,11 @@ Node *new_node_func(NodeKind kind, char *name, int len) {
     return node;
 }
 
-Node *new_node_ident(NodeKind kind, int offset) {
+Node *new_node_ident(NodeKind kind, int offset, Type type) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = kind;
     node->offset = offset;
+    node->type = type;
     return node;
 }
 
@@ -58,11 +59,13 @@ Node *func(void) {
 
     expect("(");
     if (!consume(")")) {
-        int offset;
         do {
             expect("int");
-            define_local_variable(&offset);
-            cur->next = new_node_ident(ND_FUNC_DEF, offset);
+            int offset, p_count = 0;
+            Type type;
+            while (consume("*")) p_count++;
+            define_local_variable(p_count, &offset, &type);
+            cur->next = new_node_ident(ND_FUNC_DEF, offset, type);
             cur = cur->next;
         } while (consume(","));
         expect(")");
@@ -126,7 +129,9 @@ Node *stmt(void) {
         expect(";");
     }
     else if (consume("int")) {
-        define_local_variable(NULL);
+        int p_count = 0;
+        while (consume("*")) p_count++;
+        define_local_variable(p_count, NULL, NULL);
         expect(";");
         node = NULL;
     }
@@ -236,7 +241,8 @@ Node *factor(void) {
     }
 
     int offset;
-    if (consume_ident(&offset)) return new_node_ident(ND_LVAR, offset);
+    Type type;
+    if (consume_ident(&offset, &type)) return new_node_ident(ND_LVAR, offset, type);
 
     return new_node_num(expect_number());
 }

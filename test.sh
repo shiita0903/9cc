@@ -131,5 +131,21 @@ try 3   'int main() {
     z = &y + 8;
     return *z;
 }'
+try 3   'int main() {
+    int x;
+    int *y;
+    y = &x;
+    *y = 3;
+    return x;
+}'
+try 3   'int main() {
+    int x;
+    int *y;
+    int **z;
+    y = &x;
+    z = &y;
+    **z = 3;
+    return x;
+}'
 
 echo OK
