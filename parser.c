@@ -195,7 +195,9 @@ Node *mul(void) {
 }
 
 Node *unary(void) {
-    if (consume("-")) return new_node(ND_SUB, new_node_num(0), factor(), NULL);
+    if (consume("*")) return new_node(ND_DEREF, unary(), NULL, NULL);
+    else if (consume("&")) return new_node(ND_ADDR, unary(), NULL, NULL);
+    else if (consume("-")) return new_node(ND_SUB, new_node_num(0), factor(), NULL);
     consume("+");
     return factor();
 }

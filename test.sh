@@ -101,5 +101,16 @@ fib(n) {
     if (n == 1) return 1;
     return fib(n - 1) + fib(n - 2);
 }'
+try 3   'main() {
+    x = 3;
+    y = &x;
+    return *y;
+}'
+try 3   'main() {
+    x = 3;
+    y = 5;
+    z = &y + 8;
+    return *z;
+}'
 
 echo OK
