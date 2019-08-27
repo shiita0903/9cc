@@ -55,7 +55,7 @@ void expect(char *op);
 int expect_number(void);
 void expect_func_name(char **name, int *len);
 void expect_func_def(char **name, int *len);
-void expect_ident(int *offset);
+void define_local_variable(int *offset);
 bool at_eof(void);
 
 // parser.c

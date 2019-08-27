@@ -51,6 +51,7 @@ void program(Node **nodes) {
 Node *func(void) {
     char *name;
     int len;
+    expect("int");
     expect_func_def(&name, &len);
     Node *node = new_node_func(ND_FUNC_DEF, name, len);
     Node *cur = node;
@@ -59,7 +60,8 @@ Node *func(void) {
     if (!consume(")")) {
         int offset;
         do {
-            expect_ident(&offset);
+            expect("int");
+            define_local_variable(&offset);
             cur->next = new_node_ident(ND_FUNC_DEF, offset);
             cur = cur->next;
         } while (consume(","));
@@ -69,7 +71,7 @@ Node *func(void) {
     expect("{");
     while (!consume("}")) {
         cur->next = stmt();
-        cur = cur->next;
+        if (cur->next != NULL) cur = cur->next;
     }
     node->lhs = new_node_num(lvar_count());     // 引数とローカル変数の個数を保持
     clear_lvar();
@@ -122,6 +124,11 @@ Node *stmt(void) {
     else if (consume("return")) {
         node = new_node(ND_RETURN, expr(), NULL, NULL);
         expect(";");
+    }
+    else if (consume("int")) {
+        define_local_variable(NULL);
+        expect(";");
+        node = NULL;
     }
     else {
         node = expr();
