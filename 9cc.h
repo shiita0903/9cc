@@ -53,7 +53,7 @@ struct Node {
     int val, offset;
     char *name;
     int len;
-    Type type;
+    Type *type;
 };
 
 // tokenizer.c
@@ -62,12 +62,12 @@ void clear_lvar(void);
 void *tokenize(char *p);
 bool consume(char *op);
 bool consume_func(char **name, int *len);
-bool consume_ident(int *offset, Type *type);
+bool consume_ident(int *offset, Type **type);
 void expect(char *op);
 int expect_number(void);
 void expect_func_name(char **name, int *len);
 void expect_func_def(char **name, int *len);
-void define_local_variable(int p_count, int *offset, Type *type);
+void define_local_variable(int p_count, int *offset, Type **type);
 bool at_eof(void);
 
 // parser.c

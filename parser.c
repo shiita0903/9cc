@@ -20,9 +20,13 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs, Node *cur) {
 }
 
 Node *new_node_num(int val) {
+    Type *type = calloc(1, sizeof(Type));
     Node *node = calloc(1, sizeof(Node));
+    type->t_kw = INT;
+    type->ptr_to = NULL;
     node->kind = ND_NUM;
     node->val = val;
+    node->type = type;
     return node;
 }
 
@@ -34,7 +38,7 @@ Node *new_node_func(NodeKind kind, char *name, int len) {
     return node;
 }
 
-Node *new_node_ident(NodeKind kind, int offset, Type type) {
+Node *new_node_ident(NodeKind kind, int offset, Type *type) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = kind;
     node->offset = offset;
@@ -43,7 +47,52 @@ Node *new_node_ident(NodeKind kind, int offset, Type type) {
 }
 
 bool is_pointer(Node *n) {
-    return n->kind == ND_LVAR && n->type.t_kw == PTR;
+    return n->kind == ND_LVAR && n->type->t_kw == PTR;
+}
+
+Type *get_node_type(Node *node) {
+    Type *type;
+    switch (node->kind) {
+    case ND_NUM:
+        return node->type;
+    case ND_FUNC:
+        // TODO
+        error("未対応");
+    case ND_LVAR:
+        return node->type;
+    case ND_ASSIGN:
+        return get_node_type(node->rhs);
+    case ND_ADDR:
+        // freeできないので多分良くない
+        type = calloc(1, sizeof(Type));
+        type->t_kw = PTR;
+        type->ptr_to = get_node_type(node->lhs);
+        return type;
+    case ND_DEREF:
+        type = get_node_type(node->lhs);
+        if (type->t_kw == PTR)
+            return type->ptr_to;
+        error("*演算子の適用が不適切です");
+    }
+
+    Type *t1 = get_node_type(node->lhs);
+    Type *t2 = get_node_type(node->rhs);
+    switch (node->kind) {
+    case ND_ADD:
+    case ND_SUB:
+        if (t1->t_kw == PTR && t2->t_kw == INT) return t1;
+        if (t1->t_kw == INT && t2->t_kw == PTR) return t2;
+    case ND_MUL:
+    case ND_DIV:
+    case ND_EQ:
+    case ND_NE:
+    case ND_GT:
+    case ND_GE:
+    case ND_LT:
+    case ND_LE:
+        if (t1->t_kw == INT && t2->t_kw == INT) return t1;
+    }
+    error("sizeof演算子の適用が不適切です");
 }
 
 void program(Node **nodes) {
@@ -66,7 +115,7 @@ Node *func(void) {
         do {
             expect("int");
             int offset, p_count = 0;
-            Type type;
+            Type *type;
             while (consume("*")) p_count++;
             define_local_variable(p_count, &offset, &type);
             cur->lhs = new_node_ident(ND_FUNC_DEF, offset, type);
@@ -217,7 +266,12 @@ Node *mul(void) {
 }
 
 Node *unary(void) {
-    if (consume("*")) return new_node(ND_DEREF, unary(), NULL, NULL);
+    if (consume("sizeof")) {
+        TypeKeyword t_kw = get_node_type(unary())->t_kw;
+        if (t_kw == PTR) return new_node_num(8);
+        else return new_node_num(4);
+    }
+    else if (consume("*")) return new_node(ND_DEREF, unary(), NULL, NULL);
     else if (consume("&")) return new_node(ND_ADDR, unary(), NULL, NULL);
     else if (consume("-")) return new_node(ND_SUB, new_node_num(0), factor(), NULL);
     consume("+");
@@ -249,8 +303,9 @@ Node *factor(void) {
     }
 
     int offset;
-    Type type;
-    if (consume_ident(&offset, &type)) return new_node_ident(ND_LVAR, offset, type);
-
+    Type *type;
+    if (consume_ident(&offset, &type)) {
+        return new_node_ident(ND_LVAR, offset, type);
+    }
     return new_node_num(expect_number());
 }

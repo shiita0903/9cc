@@ -82,9 +82,9 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
 
 /** 予約語だった場合には文字数を、そうでないなら0を返す */
 int is_reserved_word(char *p) {
-    char *words[6] = { "return", "if", "else", "while", "for", "int" };
-    int word_sizes[6] = { 6, 2, 4, 5, 3, 3 };
-    for (int i = 0; i < 6; i++) {
+    char *words[7] = { "return", "if", "else", "while", "for", "int", "sizeof" };
+    int word_sizes[7] = { 6, 2, 4, 5, 3, 3, 6 };
+    for (int i = 0; i < 7; i++) {
         char *w = words[i];
         int ws = word_sizes[i];
         if (!memcmp(p, w, ws) && !isalnum(p[ws]) && p[ws] != '_')
@@ -200,13 +200,13 @@ bool consume_func(char **name, int *len) {
     return true;
 }
 
-bool consume_ident(int *offset, Type *type) {
+bool consume_ident(int *offset, Type **type) {
     if (token->kind != TK_IDENT) return false;
 
     LVar *var = find_lvar(token);
     if (var == NULL) error_at(token->str, "定義されていない変数です");
     *offset = var->offset;
-    *type = *var->type;
+    *type = var->type;
     token = token->next;
     return true;
 }
@@ -238,13 +238,13 @@ void expect_func_def(char **name, int *len) {
     token = token->next;
 }
 
-void define_local_variable(int p_count, int *offset, Type *type) {
+void define_local_variable(int p_count, int *offset, Type **type) {
     if (token->kind != TK_IDENT)
         error_at(token->str, "変数ではありません");
 
     LVar *var = new_lvar(token, p_count);
     if (offset != NULL) *offset = var->offset;
-    if (type != NULL) *type = *var->type;
+    if (type != NULL) *type = var->type;
     token = token->next;
 }
 

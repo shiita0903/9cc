@@ -23,9 +23,9 @@ void gen_lval(Node *node) {
 void gen_pointer_adjust(Node *node, char *r_name) {
     // TODO: ポインタのポインタのデリファレンスは今は考えない
     if (is_pointer(node)) {
-        Type type = node->type;
-        if (type.ptr_to->t_kw == INT) printf("  shl %s, 2\n", r_name);
-        else if (type.ptr_to->t_kw == PTR) printf("  shl %s 3\n", r_name);
+        Type *type = node->type;
+        if (type->ptr_to->t_kw == INT) printf("  shl %s, 2\n", r_name);
+        else if (type->ptr_to->t_kw == PTR) printf("  shl %s 3\n", r_name);
     }
 }
 

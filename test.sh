@@ -153,5 +153,13 @@ try 3   'int main() {
     **z = 3;
     return x;
 }'
+try 4   'int main() { int x; return sizeof(x); }'
+try 8   'int main() { int *x; return sizeof(x); }'
+try 8   'int main() { int *x; return sizeof(x + 10); }'
+try 4   'int main() { int *x; return sizeof(*x); }'
+try 4   'int main() { int x; return sizeof(*&x); }'
+try 8   'int main() { int x; return sizeof(&*&x); }'
+try 4   'int main() { return sizeof(1); }'
+try 4   'int main() { return sizeof(sizeof 1); }'
 
 echo OK
