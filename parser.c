@@ -42,6 +42,10 @@ Node *new_node_ident(NodeKind kind, int offset, Type type) {
     return node;
 }
 
+bool is_pointer(Node *n) {
+    return n->kind == ND_LVAR && n->type.t_kw == PTR;
+}
+
 void program(Node **nodes) {
     int i = 0;
     while (!at_eof())
@@ -55,8 +59,8 @@ Node *func(void) {
     expect("int");
     expect_func_def(&name, &len);
     Node *node = new_node_func(ND_FUNC_DEF, name, len);
-    Node *cur = node;
 
+    Node *cur = node;
     expect("(");
     if (!consume(")")) {
         do {
@@ -65,18 +69,19 @@ Node *func(void) {
             Type type;
             while (consume("*")) p_count++;
             define_local_variable(p_count, &offset, &type);
-            cur->next = new_node_ident(ND_FUNC_DEF, offset, type);
-            cur = cur->next;
+            cur->lhs = new_node_ident(ND_FUNC_DEF, offset, type);
+            cur = cur->lhs;
         } while (consume(","));
         expect(")");
     }
 
+    cur = node;
     expect("{");
     while (!consume("}")) {
         cur->next = stmt();
         if (cur->next != NULL) cur = cur->next;
     }
-    node->lhs = new_node_num(lvar_count());     // 引数とローカル変数の個数を保持
+    node->rhs = new_node_num(lvar_count());     // 引数とローカル変数の個数を保持
     clear_lvar();
     return node;
 }
@@ -120,9 +125,14 @@ Node *stmt(void) {
         node = new_node(ND_FOR, node, stmt(), NULL);
     }
     else if (consume("{")) {
-        Node n, *cur = &n;
-        while (!consume("}")) cur = new_node(ND_BLOCK, stmt(), NULL, cur);
-        node = n.next;
+        if (consume("}")) return NULL;
+        node = new_node(ND_BLOCK, stmt(), NULL, NULL);
+
+        Node *cur = node->lhs;
+        while (!consume("}")) {
+            cur->next = stmt();
+            if (cur->next != NULL) cur = cur->next;
+        }
     }
     else if (consume("return")) {
         node = new_node(ND_RETURN, expr(), NULL, NULL);
@@ -224,19 +234,17 @@ Node *factor(void) {
     int len;
     char *name;
     if (consume_func(&name, &len)) {
-        Node n, *cur = &n;
-        n.next = NULL;
-
-        expect("(");
-        if (!consume(")")) {
-            do {
-                cur = new_node(ND_FUNC, expr(), NULL, cur);
-            } while (consume(","));
-            expect(")");
-        }
-
         Node *node = new_node_func(ND_FUNC, name, len);
-        node->next = n.next;
+        expect("(");
+        if (consume(")")) return node;
+
+        node->lhs = expr();
+        Node *cur = node->lhs;
+        while (consume(",")) {
+            cur->next = expr();
+            cur = cur->next;
+        }
+        expect(")");
         return node;
     }
 

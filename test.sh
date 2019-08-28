@@ -115,6 +115,12 @@ int fib(int n) {
     if (n == 1) return 1;
     return fib(n - 1) + fib(n - 2);
 }'
+try 21   'int main() {
+    return add(1, 2, 3, 4, 5, 6);
+}
+int add(int n1, int n2, int n3, int n4, int n5, int n6) {
+    return n1 + n2 + n3 + n4 + n5 + n6;
+}'
 try 3   'int main() {
     int x;
     int y;

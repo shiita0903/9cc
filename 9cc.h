@@ -71,6 +71,7 @@ void define_local_variable(int p_count, int *offset, Type *type);
 bool at_eof(void);
 
 // parser.c
+bool is_pointer(Node *n);
 void program(Node **nodes);
 
 // codegen.c

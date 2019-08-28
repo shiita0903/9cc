@@ -20,9 +20,19 @@ void gen_lval(Node *node) {
     }
 }
 
+void gen_pointer_adjust(Node *node, char *r_name) {
+    // TODO: ポインタのポインタのデリファレンスは今は考えない
+    if (is_pointer(node)) {
+        Type type = node->type;
+        if (type.ptr_to->t_kw == INT) printf("  shl %s, 2\n", r_name);
+        else if (type.ptr_to->t_kw == PTR) printf("  shl %s 3\n", r_name);
+    }
+}
+
 void gen(Node *node) {
     if (node == NULL) return;
 
+    Node *cur;
     int arg_num;
     char *r_name[6] = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
 
@@ -33,12 +43,12 @@ void gen(Node *node) {
     case ND_FUNC:
         arg_num = 0;
         char *name = node->name;
-        name[node->len] = '\0';
+        int len = node->len;
 
-        node = node->next;
-        while (node != NULL) {
-            gen(node->lhs);
-            node = node->next;
+        cur = node->lhs;
+        while (cur != NULL) {
+            gen(cur);
+            cur = cur->next;
             arg_num++;
         }
 
@@ -46,7 +56,7 @@ void gen(Node *node) {
             printf("  pop %s\n", r_name[i]);
 
         // TODO: RSPを16の倍数にする処理が必要らしい
-        printf("  call %s\n", name);
+        printf("  call %.*s\n", len, name);
         printf("  push rax\n");
         return;
     case ND_LVAR:
@@ -110,10 +120,10 @@ void gen(Node *node) {
         for_sn++;
         return;
     case ND_BLOCK:
-        while (node != NULL) {
-            gen(node->lhs);
-            printf("  pop rax\n");
-            node = node->next;
+        cur = node->lhs;
+        while (cur != NULL) {
+            gen(cur);
+            cur = cur->next;
         }
         return;
     case ND_RETURN:
@@ -129,15 +139,16 @@ void gen(Node *node) {
         printf("%.*s:\n", node->len, node->name);
         printf("  push rbp\n");
         printf("  mov rbp, rsp\n");
-        printf("  sub rsp, %d\n", 8 * node->lhs->val);
+        printf("  sub rsp, %d\n", 8 * node->rhs->val);
 
-        node = node->next;
-        while (node->kind == ND_FUNC_DEF) {
+        cur = node->lhs;
+        while (cur != NULL) {
             printf("  mov rax, rbp\n");
-            printf("  sub rax, %d\n", node->offset);
+            printf("  sub rax, %d\n", cur->offset);
             printf("  mov [rax], %s\n", r_name[arg_num++]);
-            node = node->next;
+            cur = cur->lhs;
         }
+        node = node->next;
         while (node != NULL) {
             gen(node);
             node = node->next;
@@ -162,9 +173,13 @@ void gen(Node *node) {
 
     switch (node->kind) {
     case ND_ADD:
+        gen_pointer_adjust(node->lhs, "rdi");
+        gen_pointer_adjust(node->rhs, "rax");
         printf("  add rax, rdi\n");
         break;
     case ND_SUB:
+        gen_pointer_adjust(node->lhs, "rdi");
+        gen_pointer_adjust(node->rhs, "rax");
         printf("  sub rax, rdi\n");
         break;
     case ND_MUL:
