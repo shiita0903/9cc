@@ -288,10 +288,12 @@ Node *factor(void) {
         return node;
     }
 
-    int len;
+    Node *node;
+    Type *type;
+    int len, offset;
     char *name;
     if (consume_func(&name, &len)) {
-        Node *node = new_node_func(ND_FUNC, name, len);
+        node = new_node_func(ND_FUNC, name, len);
         expect("(");
         if (consume(")")) return node;
 
@@ -302,13 +304,15 @@ Node *factor(void) {
             cur = cur->next;
         }
         expect(")");
-        return node;
     }
+    else if (consume_ident(&offset, &type)) node = new_node_ident(ND_LVAR, offset, type);
+    else node = new_node_num(expect_number());
 
-    int offset;
-    Type *type;
-    if (consume_ident(&offset, &type)) {
-        return new_node_ident(ND_LVAR, offset, type);
+    if (consume("[")) {
+        Node *n = expr();
+        expect("]");
+        // x[y] == y[x] == *(x + y)
+        node = new_node(ND_DEREF, new_node(ND_ADD, node, n, NULL), NULL, NULL);
     }
-    return new_node_num(expect_number());
+    return node;
 }

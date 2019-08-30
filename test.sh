@@ -181,5 +181,7 @@ try 3   'int main() {
 }'
 try 16  'int main() { int a[4]; return sizeof(a); }'
 try 32  'int main() { int *a[4]; return sizeof(a); }'
+try 10  'int main() { int a[4]; a[2] = 10; return a[2]; }'
+try 100 'int main() { int a[4]; a[1] = 100; return 1[a]; }'
 
 echo OK
