@@ -111,10 +111,10 @@ Node *func(void) {
     Node *cur = node;
     expect("(");
     if (!consume(")")) {
+        int offset;
+        Type *type;
         do {
-            expect("int");
-            int offset;
-            Type *type;
+            consume_type(&type);
             define_local_variable(&offset, &type);
             cur->lhs = new_node_ident(ND_FUNC_DEF, offset, type);
             cur = cur->lhs;
@@ -135,6 +135,7 @@ Node *func(void) {
 
 Node *stmt(void) {
     Node *node;
+    Type *type;
 
     if (consume("if")) {
         expect("(");
@@ -185,8 +186,8 @@ Node *stmt(void) {
         node = new_node(ND_RETURN, expr(), NULL);
         expect(";");
     }
-    else if (consume("int")) {
-        define_local_variable(NULL, NULL);
+    else if (consume_type(&type)) {
+        define_local_variable(NULL, &type);
         expect(";");
         node = NULL;
     }

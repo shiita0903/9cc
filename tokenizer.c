@@ -66,7 +66,7 @@ LVar *find_lvar(Token *tok) {
     return NULL;
 }
 
-LVar *new_lvar(char *name, int len, int p_count, size_t size) {
+LVar *new_lvar(char *name, int len, Type *type, size_t size) {
     LVar *var = calloc(1, sizeof(LVar));
     var->next = locals;
     var->name = name;
@@ -79,9 +79,8 @@ LVar *new_lvar(char *name, int len, int p_count, size_t size) {
     // else var->offset += 4 * s;
     var->offset += 8 * s;
 
-    var->type = new_type(INT);
-    for (int i = 0; i < p_count; i++) var->type = new_ptr_type(var->type);
-    if (size > 0) var->type = new_array_type(var->type, size);
+    if (size > 0) var->type = new_array_type(type, size);
+    else          var->type = type;
     return locals = var;
 }
 
@@ -229,6 +228,15 @@ bool consume_ident(int *offset, Type **type) {
     return true;
 }
 
+bool consume_type(Type **type) {
+    if (!consume("int")) return false;
+
+    Type *t = new_type(INT);
+    while (consume("*")) t = new_ptr_type(t);
+    *type = t;
+    return true;
+}
+
 void expect(char *op) {
     if (token->kind != TK_RESERVED ||
         strlen(op) != token->len ||
@@ -257,9 +265,6 @@ void expect_func_def(char **name, int *len) {
 }
 
 void define_local_variable(int *offset, Type **type) {
-    int p_count = 0;
-    while (consume("*")) p_count++;
-
     if (token->kind != TK_IDENT)
         error_at(token->str, "変数ではありません");
 
@@ -271,10 +276,10 @@ void define_local_variable(int *offset, Type **type) {
         expect("]");
     }
 
-    LVar *var = new_lvar(name, len, p_count, size);
+    LVar *var = new_lvar(name, len, *type, size);
 
     if (offset != NULL) *offset = var->offset;
-    if (type != NULL) *type = var->type;
+    *type = var->type;
 }
 
 bool at_eof(void) {

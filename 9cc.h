@@ -65,6 +65,7 @@ void *tokenize(char *p);
 bool consume(char *op);
 bool consume_func(char **name, int *len);
 bool consume_ident(int *offset, Type **type);
+bool consume_type(Type **type);
 void expect(char *op);
 int expect_number(void);
 void expect_func_name(char **name, int *len);
