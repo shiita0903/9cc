@@ -153,6 +153,16 @@ try 3   'int main() {
     **z = 3;
     return x;
 }'
+try 12  'int main() {
+    int p[4];
+    *(p) = 1;
+    *(p + 1) = 2;
+    *(p + 2) = 4;
+    *(p + 3) = 8;
+    int *q;
+    q = p + 2;
+    return *q + *(p + 3);
+}'
 try 4   'int main() { int x; return sizeof(x); }'
 try 8   'int main() { int *x; return sizeof(x); }'
 try 8   'int main() { int *x; return sizeof(x + 10); }'
@@ -161,5 +171,15 @@ try 4   'int main() { int x; return sizeof(*&x); }'
 try 8   'int main() { int x; return sizeof(&*&x); }'
 try 4   'int main() { return sizeof(1); }'
 try 4   'int main() { return sizeof(sizeof 1); }'
+try 3   'int main() {
+    int a[2];
+    *a = 1;
+    *(a + 1) = 2;
+    int *p;
+    p = a;
+    return *p + *(p + 1);
+}'
+try 16  'int main() { int a[4]; return sizeof(a); }'
+try 32  'int main() { int *a[4]; return sizeof(a); }'
 
 echo OK

@@ -52,6 +52,13 @@ Type *new_ptr_type(Type *type) {
     return t;
 }
 
+Type *new_array_type(Type *type, size_t size) {
+    Type *t = new_type(ARRAY);
+    t->ptr_to = type;
+    t->array_size = size;
+    return t;
+}
+
 LVar *find_lvar(Token *tok) {
     for (LVar *var = locals; var != NULL; var = var->next)
         if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
@@ -59,15 +66,22 @@ LVar *find_lvar(Token *tok) {
     return NULL;
 }
 
-LVar *new_lvar(Token *tok, int p_count) {
+LVar *new_lvar(char *name, int len, int p_count, size_t size) {
     LVar *var = calloc(1, sizeof(LVar));
     var->next = locals;
-    var->name = tok->str;
-    var->len = tok->len;
-    var->offset = (locals == NULL) ? 8 : locals->offset + 8;
+    var->name = name;
+    var->len = len;
+    var->offset = (locals == NULL) ? 0 : locals->offset;
+
+    int s = size == 0 ? 1 : size;
+    // TODO: intは32bitに対応する必要がある
+    // if (p_count > 0) var->offset += 8 * s;
+    // else var->offset += 4 * s;
+    var->offset += 8 * s;
 
     var->type = new_type(INT);
     for (int i = 0; i < p_count; i++) var->type = new_ptr_type(var->type);
+    if (size > 0) var->type = new_array_type(var->type, size);
     return locals = var;
 }
 
@@ -100,8 +114,8 @@ bool double_symbol_op(char *p) {
 }
 
 bool single_symbol_op(char *p) {
-    char ops[14] = "+-*/<>()=;{},&";
-    for (int i = 0; i < 14; i++) if (*p == ops[i]) return true;
+    char ops[16] = "+-*/<>()=;{},&[]";
+    for (int i = 0; i < 16; i++) if (*p == ops[i]) return true;
     return false;
 }
 
@@ -112,10 +126,14 @@ int ident_len(char *p) {
     return len;
 }
 
-int lvar_count(void) {
-    int cnt = 0;
-    for (LVar *var = locals; var != NULL; var = var->next) cnt++;
-    return cnt;
+int lvar_offset(void) {
+    int offset = 0;
+    for (LVar *var = locals; var != NULL; var = var->next) {
+        // TODO: intは32bitに対応する必要がある
+        if (var->type->t_kw == ARRAY) offset += 8 * var->type->array_size;
+        else offset += 8;
+    }
+    return offset;
 }
 
 void clear_lvar(void) {
@@ -238,14 +256,25 @@ void expect_func_def(char **name, int *len) {
     token = token->next;
 }
 
-void define_local_variable(int p_count, int *offset, Type **type) {
+void define_local_variable(int *offset, Type **type) {
+    int p_count = 0;
+    while (consume("*")) p_count++;
+
     if (token->kind != TK_IDENT)
         error_at(token->str, "変数ではありません");
 
-    LVar *var = new_lvar(token, p_count);
+    char *name = token->str;
+    int len = token->len, size = 0;
+    token = token->next;
+    if (consume("[")) {
+        size = expect_number();
+        expect("]");
+    }
+
+    LVar *var = new_lvar(name, len, p_count, size);
+
     if (offset != NULL) *offset = var->offset;
     if (type != NULL) *type = var->type;
-    token = token->next;
 }
 
 bool at_eof(void) {

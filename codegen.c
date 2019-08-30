@@ -23,9 +23,11 @@ void gen_lval(Node *node) {
 void gen_pointer_adjust(Node *node, char *r_name) {
     // TODO: ポインタのポインタのデリファレンスは今は考えない
     if (is_pointer(node)) {
-        Type *type = node->type;
-        if (type->ptr_to->t_kw == INT) printf("  shl %s, 2\n", r_name);
-        else if (type->ptr_to->t_kw == PTR) printf("  shl %s 3\n", r_name);
+        printf("  shl %s, 3\n", r_name);
+        // TODO: intは32bitに対応する必要がある
+        // Type *type = node->type;
+        // if (type->ptr_to->t_kw == INT) printf("  shl %s, 2\n", r_name);
+        // else if (type->ptr_to->t_kw == PTR) printf("  shl %s, 3\n", r_name);
     }
 }
 
@@ -62,9 +64,11 @@ void gen(Node *node) {
     case ND_LVAR:
         gen_lval(node);
 
-        printf("  pop rax\n");
-        printf("  mov rax, [rax]\n");
-        printf("  push rax\n");
+        if (node->type->t_kw != ARRAY) {
+            printf("  pop rax\n");
+            printf("  mov rax, [rax]\n");
+            printf("  push rax\n");
+        }
         return;
     case ND_ASSIGN:
         gen_lval(node->lhs);
@@ -139,7 +143,7 @@ void gen(Node *node) {
         printf("%.*s:\n", node->len, node->name);
         printf("  push rbp\n");
         printf("  mov rbp, rsp\n");
-        printf("  sub rsp, %d\n", 8 * node->rhs->val);
+        printf("  sub rsp, %d\n", node->rhs->val);
 
         cur = node->lhs;
         while (cur != NULL) {

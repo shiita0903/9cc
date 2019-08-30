@@ -36,13 +36,15 @@ typedef enum {
 
 typedef enum {
     INT,
-    PTR
+    PTR,
+    ARRAY
 } TypeKeyword;
 
 typedef struct Type Type;
 struct Type {
     TypeKeyword t_kw;
     Type *ptr_to;
+    size_t array_size;
 };
 
 typedef struct Node Node;
@@ -57,7 +59,7 @@ struct Node {
 };
 
 // tokenizer.c
-int lvar_count(void);
+int lvar_offset(void);
 void clear_lvar(void);
 void *tokenize(char *p);
 bool consume(char *op);
@@ -67,7 +69,7 @@ void expect(char *op);
 int expect_number(void);
 void expect_func_name(char **name, int *len);
 void expect_func_def(char **name, int *len);
-void define_local_variable(int p_count, int *offset, Type **type);
+void define_local_variable(int *offset, Type **type);
 bool at_eof(void);
 
 // parser.c

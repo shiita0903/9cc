@@ -47,7 +47,7 @@ Node *new_node_ident(NodeKind kind, int offset, Type *type) {
 }
 
 bool is_pointer(Node *n) {
-    return n->kind == ND_LVAR && n->type->t_kw == PTR;
+    return n->kind == ND_LVAR && (n->type->t_kw == PTR || n->type->t_kw == ARRAY);
 }
 
 Type *get_node_type(Node *node) {
@@ -114,10 +114,9 @@ Node *func(void) {
     if (!consume(")")) {
         do {
             expect("int");
-            int offset, p_count = 0;
+            int offset;
             Type *type;
-            while (consume("*")) p_count++;
-            define_local_variable(p_count, &offset, &type);
+            define_local_variable(&offset, &type);
             cur->lhs = new_node_ident(ND_FUNC_DEF, offset, type);
             cur = cur->lhs;
         } while (consume(","));
@@ -130,7 +129,7 @@ Node *func(void) {
         cur->next = stmt();
         if (cur->next != NULL) cur = cur->next;
     }
-    node->rhs = new_node_num(lvar_count());     // 引数とローカル変数の個数を保持
+    node->rhs = new_node_num(lvar_offset());     // 引数とローカル変数の個数を保持
     clear_lvar();
     return node;
 }
@@ -188,9 +187,7 @@ Node *stmt(void) {
         expect(";");
     }
     else if (consume("int")) {
-        int p_count = 0;
-        while (consume("*")) p_count++;
-        define_local_variable(p_count, NULL, NULL);
+        define_local_variable(NULL, NULL);
         expect(";");
         node = NULL;
     }
@@ -267,8 +264,14 @@ Node *mul(void) {
 
 Node *unary(void) {
     if (consume("sizeof")) {
-        TypeKeyword t_kw = get_node_type(unary())->t_kw;
-        if (t_kw == PTR) return new_node_num(8);
+        Type *type = get_node_type(unary());
+        if (type->t_kw == ARRAY) {
+            if (type->ptr_to->t_kw == ARRAY || type->ptr_to->t_kw == PTR)
+                return new_node_num(8 * type->array_size);
+            else
+                return new_node_num(4 * type->array_size);
+        }
+        else if (type->t_kw == PTR) return new_node_num(8);
         else return new_node_num(4);
     }
     else if (consume("*")) return new_node(ND_DEREF, unary(), NULL, NULL);
