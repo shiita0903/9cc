@@ -10,12 +10,11 @@ Node *mul(void);
 Node *unary(void);
 Node *factor(void);
 
-Node *new_node(NodeKind kind, Node *lhs, Node *rhs, Node *cur) {
+Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = kind;
     node->lhs = lhs;
     node->rhs = rhs;
-    if (cur != NULL) cur->next = node;
     return node;
 }
 
@@ -144,14 +143,14 @@ Node *stmt(void) {
         Node *s1, *s2 = NULL;
         s1 = stmt();
         if (consume("else")) s2 = stmt();
-        node = new_node(ND_IF, s1, s2, NULL);
-        node = new_node(ND_IF, e, node, NULL);
+        node = new_node(ND_IF, s1, s2);
+        node = new_node(ND_IF, e, node);
     }
     else if (consume("while")) {
         expect("(");
         Node *e = expr();
         expect(")");
-        node = new_node(ND_WHILE, e, stmt(), NULL);
+        node = new_node(ND_WHILE, e, stmt());
     }
     else if (consume("for")) {
         expect("(");
@@ -168,13 +167,13 @@ Node *stmt(void) {
             e3 = expr();
             expect(")");
         }
-        node = new_node(ND_FOR, e1, e2, NULL);
-        node = new_node(ND_FOR, node, e3, NULL);
-        node = new_node(ND_FOR, node, stmt(), NULL);
+        node = new_node(ND_FOR, e1, e2);
+        node = new_node(ND_FOR, node, e3);
+        node = new_node(ND_FOR, node, stmt());
     }
     else if (consume("{")) {
         if (consume("}")) return NULL;
-        node = new_node(ND_BLOCK, stmt(), NULL, NULL);
+        node = new_node(ND_BLOCK, stmt(), NULL);
 
         Node *cur = node->lhs;
         while (!consume("}")) {
@@ -183,7 +182,7 @@ Node *stmt(void) {
         }
     }
     else if (consume("return")) {
-        node = new_node(ND_RETURN, expr(), NULL, NULL);
+        node = new_node(ND_RETURN, expr(), NULL);
         expect(";");
     }
     else if (consume("int")) {
@@ -201,7 +200,7 @@ Node *stmt(void) {
 Node *expr(void) {
     Node *node = equality();
     while (consume("=")) {
-        node = new_node(ND_ASSIGN, node, equality(), NULL);
+        node = new_node(ND_ASSIGN, node, equality());
     }
     return node;
 }
@@ -211,9 +210,9 @@ Node *equality(void) {
 
     while (true) {
         if (consume("=="))
-            node = new_node(ND_EQ, node, relational(), NULL);
+            node = new_node(ND_EQ, node, relational());
         else if (consume("!="))
-            node = new_node(ND_NE, node, relational(), NULL);
+            node = new_node(ND_NE, node, relational());
         else
             return node;
     }
@@ -224,13 +223,13 @@ Node *relational(void) {
 
     while (true) {
         if (consume(">="))
-            node = new_node(ND_GE, node, add(), NULL);
+            node = new_node(ND_GE, node, add());
         else if (consume("<="))
-            node = new_node(ND_LE, node, add(), NULL);
+            node = new_node(ND_LE, node, add());
         else if (consume(">"))
-            node = new_node(ND_GT, node, add(), NULL);
+            node = new_node(ND_GT, node, add());
         else if (consume("<"))
-            node = new_node(ND_LT, node, add(), NULL);
+            node = new_node(ND_LT, node, add());
         else
             return node;
     }
@@ -241,9 +240,9 @@ Node *add(void) {
 
     while (true) {
         if (consume("+"))
-            node = new_node(ND_ADD, node, mul(), NULL);
+            node = new_node(ND_ADD, node, mul());
         else if (consume("-"))
-            node = new_node(ND_SUB, node, mul(), NULL);
+            node = new_node(ND_SUB, node, mul());
         else
             return node;
     }
@@ -254,9 +253,9 @@ Node *mul(void) {
 
     while (true) {
         if (consume("*"))
-            node = new_node(ND_MUL, node, unary(), NULL);
+            node = new_node(ND_MUL, node, unary());
         else if (consume("/"))
-            node = new_node(ND_DIV, node, unary(), NULL);
+            node = new_node(ND_DIV, node, unary());
         else
             return node;
     }
@@ -274,9 +273,9 @@ Node *unary(void) {
         else if (type->t_kw == PTR) return new_node_num(8);
         else return new_node_num(4);
     }
-    else if (consume("*")) return new_node(ND_DEREF, unary(), NULL, NULL);
-    else if (consume("&")) return new_node(ND_ADDR, unary(), NULL, NULL);
-    else if (consume("-")) return new_node(ND_SUB, new_node_num(0), factor(), NULL);
+    else if (consume("*")) return new_node(ND_DEREF, unary(), NULL);
+    else if (consume("&")) return new_node(ND_ADDR, unary(), NULL);
+    else if (consume("-")) return new_node(ND_SUB, new_node_num(0), factor());
     consume("+");
     return factor();
 }
@@ -312,7 +311,7 @@ Node *factor(void) {
         Node *n = expr();
         expect("]");
         // x[y] == y[x] == *(x + y)
-        node = new_node(ND_DEREF, new_node(ND_ADD, node, n, NULL), NULL, NULL);
+        node = new_node(ND_DEREF, new_node(ND_ADD, node, n), NULL);
     }
     return node;
 }
