@@ -16,6 +16,7 @@ void gen_left_value(Node *node) {
         break;
     case ND_GVAR:
         switch (node->type->t_kw) {
+        // TODO: 命令がわからないのでグローバルのcharは保留
         case INT:
             printf("  lea eax, %.*s\n", node->len, node->name);
             break;
@@ -39,6 +40,8 @@ void gen_pointer_adjust(Node *node, char *r_name) {
         case INT:
             printf("  shl %s, 2\n", r_name);
             break;
+        case CHAR:
+            break;
         default:
             printf("  shl %s, 3\n", r_name);
             break;
@@ -52,13 +55,14 @@ void get_addr_value(Node *node) {
     case INT:
         printf("  mov eax, [rax]\n");
         break;
+    case CHAR:
+        printf("  movsx rax, BYTE PTR [rax]\n");
+        break;
     case PTR:
         printf("  mov rax, [rax]\n");
         break;
     case ARRAY:
         break;
-    default:
-        error("get_addr_value error");
     }
     printf("  push rax\n");
 }
@@ -71,13 +75,15 @@ void assign_value(Node *node) {
         printf("  mov [rax], edi\n");
         printf("  mov eax, edi\n");
         break;
+    case CHAR:
+        printf("  mov [rax], dil\n");
+        printf("  movsx eax, dil\n");
+        break;
     case PTR:
     case ARRAY:
         printf("  mov [rax], rdi\n");
         printf("  mov rax, rdi\n");
         break;
-    default:
-        error("assign_value error");
     }
     printf("  push rax\n");
 }
@@ -86,11 +92,11 @@ int get_size_i(Node *node) {
     switch (node->type->t_kw) {
     case INT:
         return 1;
+    case CHAR:
+        return 2;
     case PTR:
     case ARRAY:
         return 0;
-    default:
-        error("get_size_i error");
     }
 }
 
@@ -99,9 +105,10 @@ void gen(Node *node) {
 
     Node *cur;
     int arg_num;
-    char *r_name[2][6] = {
+    char *r_name[3][6] = {
         { "rdi", "rsi", "rdx", "rcx", "r8", "r9" },
-        { "edi", "esi", "edx", "ecx", "r8d", "r9d"}
+        { "edi", "esi", "edx", "ecx", "r8d", "r9d" },
+        { "dil", "dil", "dl", "cl", "r8b", "r9b" }
     };
 
     switch (node->kind) {

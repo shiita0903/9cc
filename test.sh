@@ -179,6 +179,13 @@ try 3   'int main() {
     p = a;
     return *p + *(p + 1);
 }'
+try 10  'int main() {
+    int a[3];
+    a[0] = 1;
+    a[1] = 10;
+    a[2] = 100;
+    return *&a[1];
+}'
 try 16  'int main() { int a[4]; return sizeof(a); }'
 try 32  'int main() { int *a[4]; return sizeof(a); }'
 try 10  'int main() { int a[4]; a[2] = 10; return a[2]; }'
@@ -198,7 +205,7 @@ int main() {
 int global() {
     return 20;
 }'
-try 22 'int x;
+try 22  'int x;
 int y;
 int main() {
     x = 10;
@@ -206,6 +213,14 @@ int main() {
     int z;
     z = 5;
     return x + y + z;
+}'
+try 3   'int main() {
+    char x[3];
+    x[0] = -1;
+    x[1] = 2;
+    int y;
+    y = 4;
+    return x[0] + y;
 }'
 
 echo OK

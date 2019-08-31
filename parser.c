@@ -45,9 +45,13 @@ Node *new_node_lvar(Type *type, int offset) {
     return node;
 }
 
-bool is_pointer(Node *n) {
-    return (n->kind == ND_LVAR || n->kind == ND_GVAR) &&
-           (n->type->t_kw == PTR || n->type->t_kw == ARRAY);
+bool is_pointer_t_kw(TypeKeyword t_kw) {
+    return t_kw == PTR || t_kw == ARRAY;
+}
+
+bool is_pointer(Node *node) {
+    return (node->kind == ND_LVAR || node->kind == ND_GVAR) &&
+           is_pointer_t_kw(node->type->t_kw);
 }
 
 Type *get_node_type(Node *node) {
@@ -68,7 +72,7 @@ Type *get_node_type(Node *node) {
         return new_ptr_type(get_node_type(node->lhs));
     case ND_DEREF:
         type = get_node_type(node->lhs);
-        if (type->t_kw == PTR || type->t_kw == ARRAY)
+        if (is_pointer_t_kw(type->t_kw))
             return type->ptr_to;
         error("*演算子の適用が不適切です");
     }
@@ -78,8 +82,8 @@ Type *get_node_type(Node *node) {
     switch (node->kind) {
     case ND_ADD:
     case ND_SUB:
-        if ((t1->t_kw == PTR || t1->t_kw == ARRAY) && t2->t_kw == INT) return t1;
-        if (t1->t_kw == INT && (t2->t_kw == PTR || t2->t_kw == ARRAY)) return t2;
+        if (is_pointer_t_kw(t1->t_kw) && !is_pointer_t_kw(t2->t_kw)) return t1;
+        if (!is_pointer_t_kw(t1->t_kw) && is_pointer_t_kw(t2->t_kw)) return t2;
     case ND_MUL:
     case ND_DIV:
     case ND_EQ:
@@ -88,7 +92,7 @@ Type *get_node_type(Node *node) {
     case ND_GE:
     case ND_LT:
     case ND_LE:
-        if (t1->t_kw == INT && t2->t_kw == INT) return t1;
+        if (!is_pointer_t_kw(t1->t_kw) && !is_pointer_t_kw(t2->t_kw)) return t1;
     }
     error("型の判別ができませんでした");
 }

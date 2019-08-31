@@ -64,6 +64,8 @@ int get_type_size(Type *type) {
     switch (type->t_kw) {
     case INT:
         return 4;
+    case CHAR:
+        return 1;
     case PTR:
         return 8;
     case ARRAY:
@@ -110,9 +112,9 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
 
 /** 予約語だった場合には文字数を、そうでないなら0を返す */
 int is_reserved_word(char *p) {
-    char *words[7] = { "return", "if", "else", "while", "for", "int", "sizeof" };
-    int word_sizes[7] = { 6, 2, 4, 5, 3, 3, 6 };
-    for (int i = 0; i < 7; i++) {
+    char *words[8] = { "return", "if", "else", "while", "for", "int", "char", "sizeof" };
+    int word_sizes[8] = { 6, 2, 4, 5, 3, 3, 4, 6 };
+    for (int i = 0; i < 8; i++) {
         char *w = words[i];
         int ws = word_sizes[i];
         if (!memcmp(p, w, ws) && !isalnum(p[ws]) && p[ws] != '_')
@@ -230,9 +232,11 @@ bool consume_func_call(char **name, int *len) {
 }
 
 bool consume_type(Type **type) {
-    if (!consume("int")) return false;
+    Type *t;
+    if (consume("int")) t = new_type(INT);
+    else if (consume("char")) t = new_type(CHAR);
+    else return false;
 
-    Type *t = new_type(INT);
     while (consume("*")) t = new_ptr_type(t);
     *type = t;
     return true;
@@ -285,9 +289,13 @@ void expect_ident(char **name, int *len) {
 }
 
 Type *expect_type() {
-    expect("int");
+    Type *type;
+    if (consume("int")) type = new_type(INT);
+    else {
+        expect("char");
+        type = new_type(CHAR);
+    }
 
-    Type *type = new_type(INT);
     while (consume("*")) type = new_ptr_type(type);
     return type;
 }
