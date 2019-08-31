@@ -16,10 +16,9 @@ struct Token {
     int len;
 };
 
-// TODO: 後でLVarからVarに命名を変更する
-typedef struct LVar LVar;
-struct LVar {
-    LVar *next;
+typedef struct Var Var;
+struct Var {
+    Var *next;
     Type *type;
     char *name;
     int len, offset;
@@ -27,8 +26,8 @@ struct LVar {
 
 Token *token;
 char *user_input;
-LVar *globals;
-LVar *locals;
+Var *globals;
+Var *locals;
 
 void error_at(char *loc, char *fmt, ...) {
     va_list ap;
@@ -73,8 +72,8 @@ int get_type_size(Type *type) {
     error("型が定義されていません");
 }
 
-LVar *new_gvar(char *name, int len, Type *type, int size) {
-    LVar *var = calloc(1, sizeof(LVar));
+Var *new_gvar(char *name, int len, Type *type, int size) {
+    Var *var = calloc(1, sizeof(Var));
     var->type = type;
     var->next = globals;
     var->name = name;
@@ -82,8 +81,8 @@ LVar *new_gvar(char *name, int len, Type *type, int size) {
     return globals = var;
 }
 
-LVar *new_lvar(char *name, int len, Type *type, int size) {
-    LVar *var = calloc(1, sizeof(LVar));
+Var *new_lvar(char *name, int len, Type *type, int size) {
+    Var *var = calloc(1, sizeof(Var));
     var->type = type;
     var->next = locals;
     var->name = name;
@@ -93,8 +92,8 @@ LVar *new_lvar(char *name, int len, Type *type, int size) {
     return locals = var;
 }
 
-LVar *find_variable(LVar *vars, char *name, int len) {
-    for (LVar *var = vars; var != NULL; var = var->next)
+Var *find_variable(Var *vars, char *name, int len) {
+    for (Var *var = vars; var != NULL; var = var->next)
         if (!memcmp(name, var->name, len))
             return var;
     return NULL;
@@ -143,7 +142,7 @@ int ident_len(char *p) {
 
 int lvar_offset(void) {
     int offset = 0;
-    for (LVar *var = locals; var != NULL; var = var->next) {
+    for (Var *var = locals; var != NULL; var = var->next) {
         // TODO: intは32bitに対応する必要がある
         if (var->type->t_kw == ARRAY) offset += 8 * var->type->array_size;
         else offset += 8;
@@ -152,9 +151,9 @@ int lvar_offset(void) {
 }
 
 void clear_lvar(void) {
-    LVar *var = locals;
+    Var *var = locals;
     while (var != NULL) {
-        LVar *tmp = var->next;
+        Var *tmp = var->next;
         free(var);
         var = tmp;
     }
@@ -235,7 +234,7 @@ bool consume_func(char **name, int *len) {
 
 bool consume_lvar(int *offset, Type **type) {
     if (token->kind != TK_IDENT) return false;
-    LVar *var = find_variable(locals, token->str, token->len);
+    Var *var = find_variable(locals, token->str, token->len);
     if (var == NULL) return false;
 
     *offset = var->offset;
@@ -246,7 +245,7 @@ bool consume_lvar(int *offset, Type **type) {
 
 bool consume_gvar(Type **type, char **name, int *len) {
     if (token->kind != TK_IDENT) return false;
-    LVar *var = find_variable(globals, token->str, token->len);
+    Var *var = find_variable(globals, token->str, token->len);
     if (var == NULL) return false;
 
     *type = var->type;
@@ -309,7 +308,7 @@ void define_local_variable(int *offset, Type **type) {
     }
     if (size > 0) *type = new_array_type(*type, size);
 
-    LVar *var = new_lvar(name, len, *type, size);
+    Var *var = new_lvar(name, len, *type, size);
     if (offset != NULL) *offset = var->offset;
 }
 
@@ -322,7 +321,7 @@ void define_global_variable(Type **type, char *name, int len) {
     }
     if (size > 0) *type = new_array_type(*type, size);
 
-    LVar *var = new_gvar(name, len, *type, size);
+    Var *var = new_gvar(name, len, *type, size);
 }
 
 bool at_eof(void) {
