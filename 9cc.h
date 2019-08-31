@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define MAX_FUNC_COUNT 1000     // 定義可能な関数の数
+#define MAX_NODE_COUNT 1000     // 定義可能な関数とグローバル変数の数
 
 typedef enum {
     ND_ADD,
@@ -54,27 +54,29 @@ struct Node {
     NodeKind kind;
     // ND_BLOCKやND_FUNCの時にnextを使う
     Node *lhs, *rhs, *next;
+    Type *type;
     int val, offset;
     char *name;
     int len;
-    Type *type;
 };
 
 // tokenizer.c
+Type *new_type(TypeKeyword t_kw);
+Type *new_ptr_type(Type *type);
 int get_type_size(Type *type);
 int lvar_offset(void);
 void clear_lvar(void);
 void *tokenize(char *p);
-bool consume(char *op);
-bool consume_func(char **name, int *len);
-bool consume_lvar(int *offset, Type **type);
-bool consume_gvar(Type **type, char **name, int *len);
+bool consume(char *name);
+bool consume_func_call(char **name, int *len);
 bool consume_type(Type **type);
-void expect(char *op);
+bool consume_lvar(Type **type, int *offset);
+bool consume_gvar(Type **type, char **name, int *len);
+void expect(char *name);
 int expect_number(void);
 void expect_ident(char **name, int *len);
 Type *expect_type();
-void define_local_variable(int *offset, Type **type);
+void define_local_variable(Type **type, int *offset);
 void define_global_variable(Type **type, char *name, int len);
 bool at_eof(void);
 

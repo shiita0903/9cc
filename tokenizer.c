@@ -24,8 +24,8 @@ struct Var {
     int len, offset;
 };
 
-Token *token;
 char *user_input;
+Token *token;
 Var *globals;
 Var *locals;
 
@@ -72,7 +72,7 @@ int get_type_size(Type *type) {
     error("型が定義されていません");
 }
 
-Var *new_gvar(char *name, int len, Type *type, int size) {
+Var *new_gvar(Type *type, char *name, int len) {
     Var *var = calloc(1, sizeof(Var));
     var->type = type;
     var->next = globals;
@@ -81,7 +81,7 @@ Var *new_gvar(char *name, int len, Type *type, int size) {
     return globals = var;
 }
 
-Var *new_lvar(char *name, int len, Type *type, int size) {
+Var *new_lvar(Type *type, char *name, int len) {
     Var *var = calloc(1, sizeof(Var));
     var->type = type;
     var->next = locals;
@@ -209,16 +209,16 @@ void *tokenize(char *p) {
     token = head.next;
 }
 
-bool consume(char *op) {
+bool consume(char *name) {
     if (token->kind != TK_RESERVED ||
-        strlen(op) != token->len ||
-        memcmp(token->str, op, token->len))
+        strlen(name) != token->len ||
+        memcmp(token->str, name, token->len))
         return false;
     token = token->next;
     return true;
 }
 
-bool consume_func(char **name, int *len) {
+bool consume_func_call(char **name, int *len) {
     if (token->kind != TK_IDENT) return false;
 
     if (token->next->kind == TK_RESERVED &&
@@ -232,7 +232,16 @@ bool consume_func(char **name, int *len) {
     return true;
 }
 
-bool consume_lvar(int *offset, Type **type) {
+bool consume_type(Type **type) {
+    if (!consume("int")) return false;
+
+    Type *t = new_type(INT);
+    while (consume("*")) t = new_ptr_type(t);
+    *type = t;
+    return true;
+}
+
+bool consume_lvar(Type **type, int *offset) {
     if (token->kind != TK_IDENT) return false;
     Var *var = find_variable(locals, token->str, token->len);
     if (var == NULL) return false;
@@ -255,20 +264,11 @@ bool consume_gvar(Type **type, char **name, int *len) {
     return true;
 }
 
-bool consume_type(Type **type) {
-    if (!consume("int")) return false;
-
-    Type *t = new_type(INT);
-    while (consume("*")) t = new_ptr_type(t);
-    *type = t;
-    return true;
-}
-
-void expect(char *op) {
+void expect(char *name) {
     if (token->kind != TK_RESERVED ||
-        strlen(op) != token->len ||
-        memcmp(token->str, op, token->len))
-        error_at(token->str, "\"%s\"ではありません", op);
+        strlen(name) != token->len ||
+        memcmp(token->str, name, token->len))
+        error_at(token->str, "\"%s\"ではありません", name);
     token = token->next;
 }
 
@@ -295,7 +295,7 @@ Type *expect_type() {
     return type;
 }
 
-void define_local_variable(int *offset, Type **type) {
+void define_local_variable(Type **type, int *offset) {
     if (token->kind != TK_IDENT)
         error_at(token->str, "変数ではありません");
 
@@ -308,7 +308,7 @@ void define_local_variable(int *offset, Type **type) {
     }
     if (size > 0) *type = new_array_type(*type, size);
 
-    Var *var = new_lvar(name, len, *type, size);
+    Var *var = new_lvar(*type, name, len);
     if (offset != NULL) *offset = var->offset;
 }
 
@@ -321,7 +321,7 @@ void define_global_variable(Type **type, char *name, int len) {
     }
     if (size > 0) *type = new_array_type(*type, size);
 
-    Var *var = new_gvar(name, len, *type, size);
+    Var *var = new_gvar(*type, name, len);
 }
 
 bool at_eof(void) {

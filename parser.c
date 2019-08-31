@@ -21,13 +21,10 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
 }
 
 Node *new_node_num(int val) {
-    Type *type = calloc(1, sizeof(Type));
     Node *node = calloc(1, sizeof(Node));
-    type->t_kw = INT;
-    type->ptr_to = NULL;
     node->kind = ND_NUM;
+    node->type = new_type(INT);
     node->val = val;
-    node->type = type;
     return node;
 }
 
@@ -40,11 +37,11 @@ Node *new_node_ident(NodeKind kind, Type *type, char *name, int len) {
     return node;
 }
 
-Node *new_node_lvar(int offset, Type *type) {
+Node *new_node_lvar(Type *type, int offset) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = ND_LVAR;
-    node->offset = offset;
     node->type = type;
+    node->offset = offset;
     return node;
 }
 
@@ -66,11 +63,7 @@ Type *get_node_type(Node *node) {
     case ND_ASSIGN:
         return get_node_type(node->rhs);
     case ND_ADDR:
-        // freeできないので多分良くない
-        type = calloc(1, sizeof(Type));
-        type->t_kw = PTR;
-        type->ptr_to = get_node_type(node->lhs);
-        return type;
+        return new_ptr_type(get_node_type(node->lhs));
     case ND_DEREF:
         type = get_node_type(node->lhs);
         if (type->t_kw == PTR)
@@ -128,8 +121,8 @@ Node *func(Type *return_type, char *name, int len) {
         do {
             int offset;
             Type *type = expect_type();
-            define_local_variable(&offset, &type);
-            cur->lhs = new_node_lvar(offset, type);
+            define_local_variable(&type, &offset);
+            cur->lhs = new_node_lvar(type, offset);
             cur = cur->lhs;
         } while (consume(","));
         expect(")");
@@ -200,7 +193,7 @@ Node *stmt(void) {
         expect(";");
     }
     else if (consume_type(&type)) {
-        define_local_variable(NULL, &type);
+        define_local_variable(&type, NULL);
         expect(";");
         node = NULL;
     }
@@ -295,7 +288,7 @@ Node *factor(void) {
     Type *type;
     int len, offset;
     char *name;
-    if (consume_func(&name, &len)) {
+    if (consume_func_call(&name, &len)) {
         node = new_node_ident(ND_FUNC, NULL, name, len);
         expect("(");
         if (consume(")")) return node;
@@ -308,7 +301,7 @@ Node *factor(void) {
         }
         expect(")");
     }
-    else if (consume_lvar(&offset, &type)) node = new_node_lvar(offset, type);
+    else if (consume_lvar(&type, &offset)) node = new_node_lvar(type, offset);
     else if (consume_gvar(&type, &name, &len)) node = new_node_ident(ND_GVAR, type, name, len);
     else node = new_node_num(expect_number());
 
