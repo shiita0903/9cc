@@ -1,6 +1,8 @@
 #include "9cc.h"
 
-Node *func(void);
+Node *fragment(void);
+Node *global(Type *type, char *name, int len);
+Node *func(Type *type, char *name, int len);
 Node *stmt(void);
 Node *expr(void);
 Node *equality(void);
@@ -29,24 +31,26 @@ Node *new_node_num(int val) {
     return node;
 }
 
-Node *new_node_func(NodeKind kind, char *name, int len) {
+Node *new_node_ident(NodeKind kind, Type *type, char *name, int len) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = kind;
+    node->type = type;
     node->name = name;
     node->len = len;
     return node;
 }
 
-Node *new_node_ident(NodeKind kind, int offset, Type *type) {
+Node *new_node_lvar(int offset, Type *type) {
     Node *node = calloc(1, sizeof(Node));
-    node->kind = kind;
+    node->kind = ND_LVAR;
     node->offset = offset;
     node->type = type;
     return node;
 }
 
 bool is_pointer(Node *n) {
-    return n->kind == ND_LVAR && (n->type->t_kw == PTR || n->type->t_kw == ARRAY);
+    return (n->kind == ND_LVAR || n->kind == ND_GVAR) &&
+           (n->type->t_kw == PTR || n->type->t_kw == ARRAY);
 }
 
 Type *get_node_type(Node *node) {
@@ -97,26 +101,35 @@ Type *get_node_type(Node *node) {
 void program(Node **nodes) {
     int i = 0;
     while (!at_eof())
-        nodes[i++] = func();
+        nodes[i++] = fragment();
     nodes[i] = NULL;
 }
 
-Node *func(void) {
+Node *fragment(void) {
+    Type *type = expect_type();
     char *name;
     int len;
-    expect("int");
-    expect_func_def(&name, &len);
-    Node *node = new_node_func(ND_FUNC_DEF, name, len);
+    expect_ident(&name, &len);
 
-    Node *cur = node;
-    expect("(");
+    if (consume("(")) return func(type, name, len);
+    else global(type, name, len);
+}
+
+Node *global(Type *type, char *name, int len) {
+    define_global_variable(&type, name, len);
+    expect(";");
+    return new_node_ident(ND_GVAR_DEF, type, name, len);
+}
+
+Node *func(Type *return_type, char *name, int len) {
+    Node *node = new_node_ident(ND_FUNC_DEF, return_type, name, len), *cur = node;
+
     if (!consume(")")) {
-        int offset;
-        Type *type;
         do {
-            consume_type(&type);
+            int offset;
+            Type *type = expect_type();
             define_local_variable(&offset, &type);
-            cur->lhs = new_node_ident(ND_FUNC_DEF, offset, type);
+            cur->lhs = new_node_lvar(offset, type);
             cur = cur->lhs;
         } while (consume(","));
         expect(")");
@@ -263,17 +276,7 @@ Node *mul(void) {
 }
 
 Node *unary(void) {
-    if (consume("sizeof")) {
-        Type *type = get_node_type(unary());
-        if (type->t_kw == ARRAY) {
-            if (type->ptr_to->t_kw == ARRAY || type->ptr_to->t_kw == PTR)
-                return new_node_num(8 * type->array_size);
-            else
-                return new_node_num(4 * type->array_size);
-        }
-        else if (type->t_kw == PTR) return new_node_num(8);
-        else return new_node_num(4);
-    }
+    if (consume("sizeof")) return new_node_num(get_type_size(get_node_type(unary())));
     else if (consume("*")) return new_node(ND_DEREF, unary(), NULL);
     else if (consume("&")) return new_node(ND_ADDR, unary(), NULL);
     else if (consume("-")) return new_node(ND_SUB, new_node_num(0), factor());
@@ -293,7 +296,7 @@ Node *factor(void) {
     int len, offset;
     char *name;
     if (consume_func(&name, &len)) {
-        node = new_node_func(ND_FUNC, name, len);
+        node = new_node_ident(ND_FUNC, NULL, name, len);
         expect("(");
         if (consume(")")) return node;
 
@@ -305,7 +308,8 @@ Node *factor(void) {
         }
         expect(")");
     }
-    else if (consume_ident(&offset, &type)) node = new_node_ident(ND_LVAR, offset, type);
+    else if (consume_lvar(&offset, &type)) node = new_node_lvar(offset, type);
+    else if (consume_gvar(&type, &name, &len)) node = new_node_ident(ND_GVAR, type, name, len);
     else node = new_node_num(expect_number());
 
     if (consume("[")) {

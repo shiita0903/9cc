@@ -4,7 +4,7 @@ try() {
     input="$2"
 
     ./9cc "$input" > tmp.s
-    gcc -o tmp tmp.s
+    gcc -no-pie -o tmp tmp.s
     ./tmp
     actual="$?"
 
@@ -163,14 +163,15 @@ try 12  'int main() {
     q = p + 2;
     return *q + *(p + 3);
 }'
-try 4   'int main() { int x; return sizeof(x); }'
+# 今はintを8Byteで進めている
+try 8   'int main() { int x; return sizeof(x); }'
 try 8   'int main() { int *x; return sizeof(x); }'
 try 8   'int main() { int *x; return sizeof(x + 10); }'
-try 4   'int main() { int *x; return sizeof(*x); }'
-try 4   'int main() { int x; return sizeof(*&x); }'
+try 8   'int main() { int *x; return sizeof(*x); }'
+try 8   'int main() { int x; return sizeof(*&x); }'
 try 8   'int main() { int x; return sizeof(&*&x); }'
-try 4   'int main() { return sizeof(1); }'
-try 4   'int main() { return sizeof(sizeof 1); }'
+try 8   'int main() { return sizeof(1); }'
+try 8   'int main() { return sizeof(sizeof 1); }'
 try 3   'int main() {
     int a[2];
     *a = 1;
@@ -179,9 +180,34 @@ try 3   'int main() {
     p = a;
     return *p + *(p + 1);
 }'
-try 16  'int main() { int a[4]; return sizeof(a); }'
+# 今はintを8Byteで進めている
+try 32  'int main() { int a[4]; return sizeof(a); }'
 try 32  'int main() { int *a[4]; return sizeof(a); }'
 try 10  'int main() { int a[4]; a[2] = 10; return a[2]; }'
 try 100 'int main() { int a[4]; a[1] = 100; return 1[a]; }'
+try 100 'int x;
+int main() {
+    x = 100;
+    return x;
+}'
+try 120 'int x;
+int main() {
+    x = 20;
+    int x;
+    x = 100;
+    return x + 20;
+}
+int global() {
+    return 20;
+}'
+try 22 'int x;
+int y;
+int main() {
+    x = 10;
+    y = 7;
+    int z;
+    z = 5;
+    return x + y + z;
+}'
 
 echo OK

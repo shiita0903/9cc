@@ -5,13 +5,17 @@ void gen(Node *node);
 long long if_sn = 0, while_sn = 0, for_sn = 0;
 
 void gen_lval(Node *node) {
-    if (node->kind != ND_LVAR && node->kind != ND_DEREF)
+    if (node->kind != ND_LVAR && node->kind != ND_GVAR && node->kind != ND_DEREF)
         error("代入の左辺値が変数ではありません");
 
     switch (node->kind) {
     case ND_LVAR:
         printf("  mov rax, rbp\n");
         printf("  sub rax, %d\n", node->offset);
+        printf("  push rax\n");
+        break;
+    case ND_GVAR:
+        printf("  lea rax, %.*s\n", node->len, node->name);
         printf("  push rax\n");
         break;
     case ND_DEREF:
@@ -69,6 +73,19 @@ void gen(Node *node) {
             printf("  mov rax, [rax]\n");
             printf("  push rax\n");
         }
+        return;
+    case ND_GVAR:
+        gen_lval(node);
+
+        if (node->type->t_kw != ARRAY) {
+            printf("  pop rax\n");
+            printf("  mov rax, [rax]\n");
+            printf("  push rax\n");
+        }
+        return;
+    case ND_GVAR_DEF:
+        printf("%.*s:\n", node->len, node->name);
+        printf("  .zero %d\n", get_type_size(node->type));
         return;
     case ND_ASSIGN:
         gen_lval(node->lhs);
@@ -229,9 +246,15 @@ void gen(Node *node) {
 }
 
 void code_gen(Node **nodes) {
+    Node **n = nodes;
     printf(".intel_syntax noprefix\n");
-    printf(".global main\n");
 
-    for (Node **n = nodes; *n != NULL; n++)
+    printf(".bss\n");
+    for (; *n != NULL && (*n)->kind == ND_GVAR_DEF; n++)
+        gen(*n);
+
+    printf(".text\n");
+    printf(".global main\n");
+    for (; *n != NULL; n++)
         gen(*n);
 }

@@ -16,6 +16,7 @@ struct Token {
     int len;
 };
 
+// TODO: 後でLVarからVarに命名を変更する
 typedef struct LVar LVar;
 struct LVar {
     LVar *next;
@@ -26,6 +27,7 @@ struct LVar {
 
 Token *token;
 char *user_input;
+LVar *globals;
 LVar *locals;
 
 void error_at(char *loc, char *fmt, ...) {
@@ -52,36 +54,50 @@ Type *new_ptr_type(Type *type) {
     return t;
 }
 
-Type *new_array_type(Type *type, size_t size) {
+Type *new_array_type(Type *type, int size) {
     Type *t = new_type(ARRAY);
     t->ptr_to = type;
     t->array_size = size;
     return t;
 }
 
-LVar *find_lvar(Token *tok) {
-    for (LVar *var = locals; var != NULL; var = var->next)
-        if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
-            return var;
-    return NULL;
+int get_type_size(Type *type) {
+    switch (type->t_kw) {
+    case INT:
+        return 8;   // TODO: intは32bitに対応する必要がある
+    case PTR:
+        return 8;
+    case ARRAY:
+        return type->array_size * get_type_size(type->ptr_to);
+    }
+    error("型が定義されていません");
 }
 
-LVar *new_lvar(char *name, int len, Type *type, size_t size) {
+LVar *new_gvar(char *name, int len, Type *type, int size) {
     LVar *var = calloc(1, sizeof(LVar));
+    var->type = type;
+    var->next = globals;
+    var->name = name;
+    var->len = len;
+    return globals = var;
+}
+
+LVar *new_lvar(char *name, int len, Type *type, int size) {
+    LVar *var = calloc(1, sizeof(LVar));
+    var->type = type;
     var->next = locals;
     var->name = name;
     var->len = len;
     var->offset = (locals == NULL) ? 0 : locals->offset;
-
-    int s = size == 0 ? 1 : size;
-    // TODO: intは32bitに対応する必要がある
-    // if (p_count > 0) var->offset += 8 * s;
-    // else var->offset += 4 * s;
-    var->offset += 8 * s;
-
-    if (size > 0) var->type = new_array_type(type, size);
-    else          var->type = type;
+    var->offset += get_type_size(var->type);
     return locals = var;
+}
+
+LVar *find_variable(LVar *vars, char *name, int len) {
+    for (LVar *var = vars; var != NULL; var = var->next)
+        if (!memcmp(name, var->name, len))
+            return var;
+    return NULL;
 }
 
 Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
@@ -217,13 +233,25 @@ bool consume_func(char **name, int *len) {
     return true;
 }
 
-bool consume_ident(int *offset, Type **type) {
+bool consume_lvar(int *offset, Type **type) {
     if (token->kind != TK_IDENT) return false;
+    LVar *var = find_variable(locals, token->str, token->len);
+    if (var == NULL) return false;
 
-    LVar *var = find_lvar(token);
-    if (var == NULL) error_at(token->str, "定義されていない変数です");
     *offset = var->offset;
     *type = var->type;
+    token = token->next;
+    return true;
+}
+
+bool consume_gvar(Type **type, char **name, int *len) {
+    if (token->kind != TK_IDENT) return false;
+    LVar *var = find_variable(globals, token->str, token->len);
+    if (var == NULL) return false;
+
+    *type = var->type;
+    *name = var->name;
+    *len = var->len;
     token = token->next;
     return true;
 }
@@ -253,15 +281,19 @@ int expect_number(void) {
     return val;
 }
 
-void expect_func_def(char **name, int *len) {
-    if (token->kind != TK_IDENT ||
-        token->next->kind != TK_RESERVED ||
-        token->next->str[0] != '(')
-        error_at(token->str, "関数定義ではありません");
-
+void expect_ident(char **name, int *len) {
+    if (token->kind != TK_IDENT) error_at(token->str, "識別子ではありません");
     *name = token->str;
     *len = token->len;
     token = token->next;
+}
+
+Type *expect_type() {
+    expect("int");
+
+    Type *type = new_type(INT);
+    while (consume("*")) type = new_ptr_type(type);
+    return type;
 }
 
 void define_local_variable(int *offset, Type **type) {
@@ -275,11 +307,22 @@ void define_local_variable(int *offset, Type **type) {
         size = expect_number();
         expect("]");
     }
+    if (size > 0) *type = new_array_type(*type, size);
 
     LVar *var = new_lvar(name, len, *type, size);
-
     if (offset != NULL) *offset = var->offset;
-    *type = var->type;
+}
+
+void define_global_variable(Type **type, char *name, int len) {
+    int size = 0;
+    // TODO: 2次元配列以上の実装が必要
+    if (consume("[")) {
+        size = expect_number();
+        expect("]");
+    }
+    if (size > 0) *type = new_array_type(*type, size);
+
+    LVar *var = new_gvar(name, len, *type, size);
 }
 
 bool at_eof(void) {
