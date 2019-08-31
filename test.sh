@@ -222,5 +222,8 @@ try 3   'int main() {
     y = 4;
     return x[0] + y;
 }'
+try 104 'int main() {char *x; x = "hello world!"; return x[0]; }'
+try 119 'int main() {char *x; x = "hello world!"; return x[6]; }'
+try 33  'int main() {char *x; x = "hello world!"; return x[11]; }'
 
 echo OK

@@ -4,6 +4,7 @@ typedef enum {
     TK_RESERVED,
     TK_IDENT,
     TK_NUM,
+    TK_STR,
     TK_EOF,
 } TokenKind;
 
@@ -24,10 +25,19 @@ struct Var {
     int len, offset;
 };
 
+typedef struct Str Str;
+struct Str {
+    Str *next;
+    char *name;
+    int len, sn;
+};
+
+long long str_sn = 0;
 char *user_input;
 Token *token;
 Var *globals;
 Var *locals;
+Str *strs;
 
 void error_at(char *loc, char *fmt, ...) {
     va_list ap;
@@ -101,6 +111,24 @@ Var *find_variable(Var *vars, char *name, int len) {
     return NULL;
 }
 
+Str *new_str(char *name, int len) {
+    Str *str = calloc(1, sizeof(Str));
+    str->next = strs;
+    str->name = name;
+    str->len = len;
+    str->sn = str_sn++;
+    return strs = str;
+}
+
+int get_strs(char ***name, int **len) {
+    int i = 0;
+    for (Str *str = strs; str != NULL; str = str->next, i++) {
+        (*name)[i] = str->name;
+        (*len)[i] = str->len;
+    }
+    return i;
+}
+
 Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
     Token *tok = calloc(1, sizeof(Token));
     tok->kind = kind;
@@ -130,8 +158,8 @@ bool double_symbol_op(char *p) {
 }
 
 bool single_symbol_op(char *p) {
-    char ops[16] = "+-*/<>()=;{},&[]";
-    for (int i = 0; i < 16; i++) if (*p == ops[i]) return true;
+    char ops[17] = "+-*/<>()=;{},&[]";
+    for (int i = 0; i < 17; i++) if (*p == ops[i]) return true;
     return false;
 }
 
@@ -192,6 +220,14 @@ void *tokenize(char *p) {
         if (isdigit(*p)) {
             cur = new_token(TK_NUM, cur, p, 1);
             cur->val = strtol(p, &p, 10);
+            continue;
+        }
+
+        if (*p == '"') {
+            char *q = ++p;
+            while (*q != '"') q++;
+            cur = new_token(TK_STR, cur, p, q - p);
+            p = q + 1;
             continue;
         }
 
@@ -261,6 +297,14 @@ bool consume_gvar(Type **type, char **name, int *len) {
     *type = var->type;
     *name = var->name;
     *len = var->len;
+    token = token->next;
+    return true;
+}
+
+bool consume_str(int *sn) {
+    if (token->kind != TK_STR) return false;
+    Str *str = new_str(token->str, token->len);
+    *sn = str->sn;
     token = token->next;
     return true;
 }

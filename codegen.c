@@ -49,9 +49,13 @@ void gen_pointer_adjust(Node *node, char *r_name) {
     }
 }
 
-void get_addr_value(Node *node) {
+void get_addr_value(Node *node, bool is_deref) {
+    TypeKeyword t_kw;
+    if (is_deref) t_kw = get_node_type(node)->ptr_to->t_kw;
+    else t_kw = get_node_type(node)->t_kw;
+
     printf("  pop rax\n");
-    switch (get_node_type(node)->t_kw) {
+    switch (t_kw) {
     case INT:
         printf("  mov eax, [rax]\n");
         break;
@@ -62,6 +66,7 @@ void get_addr_value(Node *node) {
         printf("  mov rax, [rax]\n");
         break;
     case ARRAY:
+        if (is_deref) printf("  mov rax, [rax]\n");
         break;
     }
     printf("  push rax\n");
@@ -115,6 +120,10 @@ void gen(Node *node) {
     case ND_NUM:
         printf("  push %d\n", node->val);
         return;
+    case ND_STR:
+        printf("  lea rax, .Lstr%d\n", node->val);
+        printf("  push rax\n");
+        return;
     case ND_FUNC:
         arg_num = 0;
         char *name = node->name;
@@ -137,7 +146,7 @@ void gen(Node *node) {
     case ND_LVAR:
     case ND_GVAR:
         gen_left_value(node);
-        get_addr_value(node);
+        get_addr_value(node, false);
         return;
     case ND_GVAR_DEF:
         printf("%.*s:\n", node->len, node->name);
@@ -234,9 +243,7 @@ void gen(Node *node) {
         return;
     case ND_DEREF:
         gen(node->lhs);
-        printf("  pop rax\n");
-        printf("  mov rax, [rax]\n");
-        printf("  push rax\n");
+        get_addr_value(node->lhs, true);
         return;
     }
 
@@ -301,6 +308,15 @@ void gen(Node *node) {
 void code_gen(Node **nodes) {
     Node **n = nodes;
     printf(".intel_syntax noprefix\n");
+
+    int *lens = calloc(MAX_STR_COUNT, sizeof(int));
+    char **names = calloc(MAX_NODE_COUNT, sizeof(char *));
+    int cnt = get_strs(&names, &lens);
+    printf(".data\n");
+    for (int i = 0; i < cnt; i++) {
+        printf(".Lstr%d:\n", i);
+        printf("  .string \"%.*s\"\n", lens[i], names[i]);
+    }
 
     printf(".bss\n");
     for (; *n != NULL && (*n)->kind == ND_GVAR_DEF; n++)

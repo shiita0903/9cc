@@ -28,6 +28,14 @@ Node *new_node_num(int val) {
     return node;
 }
 
+Node *new_node_str(int sn) {
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = ND_STR;
+    node->type = new_ptr_type(new_type(CHAR));
+    node->val = sn;
+    return node;
+}
+
 Node *new_node_ident(NodeKind kind, Type *type, char *name, int len) {
     Node *node = calloc(1, sizeof(Node));
     node->kind = kind;
@@ -292,7 +300,7 @@ Node *factor(void) {
 
     Node *node;
     Type *type;
-    int len, offset;
+    int len, offset, sn;
     char *name;
     if (consume_func_call(&name, &len)) {
         node = new_node_ident(ND_FUNC, NULL, name, len);
@@ -309,6 +317,7 @@ Node *factor(void) {
     }
     else if (consume_lvar(&type, &offset)) node = new_node_lvar(type, offset);
     else if (consume_gvar(&type, &name, &len)) node = new_node_ident(ND_GVAR, type, name, len);
+    else if (consume_str(&sn)) node = new_node_str(sn);
     else node = new_node_num(expect_number());
 
     if (consume("[")) {

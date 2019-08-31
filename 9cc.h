@@ -8,6 +8,7 @@
 #include <stdlib.h>
 
 #define MAX_NODE_COUNT 1000     // 定義可能な関数とグローバル変数の数
+#define MAX_STR_COUNT 10000     // 定義可能な文字列リテラルの数
 
 typedef enum {
     ND_ADD,
@@ -15,6 +16,7 @@ typedef enum {
     ND_MUL,
     ND_DIV,
     ND_NUM,
+    ND_STR,
     ND_EQ,
     ND_NE,
     ND_GT,
@@ -65,6 +67,7 @@ struct Node {
 Type *new_type(TypeKeyword t_kw);
 Type *new_ptr_type(Type *type);
 int get_type_size(Type *type);
+int get_strs(char ***name, int **len);
 int lvar_offset(void);
 void clear_lvar(void);
 void *tokenize(char *p);
@@ -73,6 +76,7 @@ bool consume_func_call(char **name, int *len);
 bool consume_type(Type **type);
 bool consume_lvar(Type **type, int *offset);
 bool consume_gvar(Type **type, char **name, int *len);
+bool consume_str(int *sn);
 void expect(char *name);
 int expect_number(void);
 void expect_ident(char **name, int *len);
