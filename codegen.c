@@ -4,7 +4,7 @@ void gen(Node *node);
 
 long long if_sn = 0, while_sn = 0, for_sn = 0;
 
-void gen_lval(Node *node) {
+void gen_left_value(Node *node) {
     if (node->kind != ND_LVAR && node->kind != ND_GVAR && node->kind != ND_DEREF)
         error("代入の左辺値が変数ではありません");
 
@@ -15,7 +15,15 @@ void gen_lval(Node *node) {
         printf("  push rax\n");
         break;
     case ND_GVAR:
-        printf("  lea rax, %.*s\n", node->len, node->name);
+        switch (node->type->t_kw) {
+        case INT:
+            printf("  lea eax, %.*s\n", node->len, node->name);
+            break;
+        default:
+            printf("  lea rax, %.*s\n", node->len, node->name);
+            break;
+        }
+
         printf("  push rax\n");
         break;
     case ND_DEREF:
@@ -27,11 +35,62 @@ void gen_lval(Node *node) {
 void gen_pointer_adjust(Node *node, char *r_name) {
     // TODO: ポインタのポインタのデリファレンスは今は考えない
     if (is_pointer(node)) {
-        printf("  shl %s, 3\n", r_name);
-        // TODO: intは32bitに対応する必要がある
-        // Type *type = node->type;
-        // if (type->ptr_to->t_kw == INT) printf("  shl %s, 2\n", r_name);
-        // else if (type->ptr_to->t_kw == PTR) printf("  shl %s, 3\n", r_name);
+        switch (node->type->ptr_to->t_kw) {
+        case INT:
+            printf("  shl %s, 2\n", r_name);
+            break;
+        default:
+            printf("  shl %s, 3\n", r_name);
+            break;
+        }
+    }
+}
+
+void get_addr_value(Node *node) {
+    printf("  pop rax\n");
+    switch (get_node_type(node)->t_kw) {
+    case INT:
+        printf("  mov eax, [rax]\n");
+        break;
+    case PTR:
+        printf("  mov rax, [rax]\n");
+        break;
+    case ARRAY:
+        break;
+    default:
+        error("get_addr_value error");
+    }
+    printf("  push rax\n");
+}
+
+void assign_value(Node *node) {
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+    switch (get_node_type(node)->t_kw) {
+    case INT:
+        printf("  mov [rax], edi\n");
+        printf("  mov eax, edi\n");
+        break;
+    case PTR:
+    case ARRAY:
+        printf("  mov [rax], rdi\n");
+        printf("  mov rax, rdi\n");
+        break;
+    default:
+        error("assign_value error");
+    }
+    printf("  push rax\n");
+}
+
+int get_size_i(Node *node) {
+    switch (node->type->t_kw) {
+    case INT:
+        return 1;
+    case PTR:
+    case ARRAY:
+        return 0;
+    default:
+        error("get_size_i error");
     }
 }
 
@@ -40,7 +99,10 @@ void gen(Node *node) {
 
     Node *cur;
     int arg_num;
-    char *r_name[6] = { "rdi", "rsi", "rdx", "rcx", "r8", "r9" };
+    char *r_name[2][6] = {
+        { "rdi", "rsi", "rdx", "rcx", "r8", "r9" },
+        { "edi", "esi", "edx", "ecx", "r8d", "r9d"}
+    };
 
     switch (node->kind) {
     case ND_NUM:
@@ -59,42 +121,25 @@ void gen(Node *node) {
         }
 
         for (int i = arg_num - 1; i >= 0 ; i--)
-            printf("  pop %s\n", r_name[i]);
+            printf("  pop %s\n", r_name[0][i]);
 
         // TODO: RSPを16の倍数にする処理が必要らしい
         printf("  call %.*s\n", len, name);
         printf("  push rax\n");
         return;
     case ND_LVAR:
-        gen_lval(node);
-
-        if (node->type->t_kw != ARRAY) {
-            printf("  pop rax\n");
-            printf("  mov rax, [rax]\n");
-            printf("  push rax\n");
-        }
-        return;
     case ND_GVAR:
-        gen_lval(node);
-
-        if (node->type->t_kw != ARRAY) {
-            printf("  pop rax\n");
-            printf("  mov rax, [rax]\n");
-            printf("  push rax\n");
-        }
+        gen_left_value(node);
+        get_addr_value(node);
         return;
     case ND_GVAR_DEF:
         printf("%.*s:\n", node->len, node->name);
         printf("  .zero %d\n", get_type_size(node->type));
         return;
     case ND_ASSIGN:
-        gen_lval(node->lhs);
+        gen_left_value(node->lhs);
         gen(node->rhs);
-
-        printf("  pop rdi\n");
-        printf("  pop rax\n");
-        printf("  mov [rax], rdi\n");
-        printf("  push rdi\n");
+        assign_value(node->lhs);
         return;
     case ND_IF:
         gen(node->lhs);
@@ -164,9 +209,11 @@ void gen(Node *node) {
 
         cur = node->lhs;
         while (cur != NULL) {
+            int size_i = get_size_i(cur);
+
             printf("  mov rax, rbp\n");
             printf("  sub rax, %d\n", cur->offset);
-            printf("  mov [rax], %s\n", r_name[arg_num++]);
+            printf("  mov [rax], %s\n", r_name[size_i][arg_num++]);
             cur = cur->lhs;
         }
         node = node->next;
@@ -176,7 +223,7 @@ void gen(Node *node) {
         }
         return;
     case ND_ADDR:
-        gen_lval(node->lhs);
+        gen_left_value(node->lhs);
         return;
     case ND_DEREF:
         gen(node->lhs);
@@ -241,7 +288,6 @@ void gen(Node *node) {
         printf("  movzb rax, al\n");
         break;
     }
-
     printf("  push rax\n");
 }
 

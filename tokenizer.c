@@ -63,7 +63,7 @@ Type *new_array_type(Type *type, int size) {
 int get_type_size(Type *type) {
     switch (type->t_kw) {
     case INT:
-        return 8;   // TODO: intは32bitに対応する必要がある
+        return 4;
     case PTR:
         return 8;
     case ARRAY:
@@ -142,11 +142,8 @@ int ident_len(char *p) {
 
 int lvar_offset(void) {
     int offset = 0;
-    for (Var *var = locals; var != NULL; var = var->next) {
-        // TODO: intは32bitに対応する必要がある
-        if (var->type->t_kw == ARRAY) offset += 8 * var->type->array_size;
-        else offset += 8;
-    }
+    for (Var *var = locals; var != NULL; var = var->next)
+        offset += get_type_size(var->type);
     return offset;
 }
 

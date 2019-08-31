@@ -82,6 +82,7 @@ bool at_eof(void);
 
 // parser.c
 bool is_pointer(Node *n);
+Type *get_node_type(Node *node);
 void program(Node **nodes);
 
 // codegen.c

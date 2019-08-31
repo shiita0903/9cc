@@ -60,13 +60,15 @@ Type *get_node_type(Node *node) {
         error("未対応");
     case ND_LVAR:
         return node->type;
+    case ND_GVAR:
+        return node->type;
     case ND_ASSIGN:
         return get_node_type(node->rhs);
     case ND_ADDR:
         return new_ptr_type(get_node_type(node->lhs));
     case ND_DEREF:
         type = get_node_type(node->lhs);
-        if (type->t_kw == PTR)
+        if (type->t_kw == PTR || type->t_kw == ARRAY)
             return type->ptr_to;
         error("*演算子の適用が不適切です");
     }
@@ -76,8 +78,8 @@ Type *get_node_type(Node *node) {
     switch (node->kind) {
     case ND_ADD:
     case ND_SUB:
-        if (t1->t_kw == PTR && t2->t_kw == INT) return t1;
-        if (t1->t_kw == INT && t2->t_kw == PTR) return t2;
+        if ((t1->t_kw == PTR || t1->t_kw == ARRAY) && t2->t_kw == INT) return t1;
+        if (t1->t_kw == INT && (t2->t_kw == PTR || t2->t_kw == ARRAY)) return t2;
     case ND_MUL:
     case ND_DIV:
     case ND_EQ:
@@ -88,7 +90,7 @@ Type *get_node_type(Node *node) {
     case ND_LE:
         if (t1->t_kw == INT && t2->t_kw == INT) return t1;
     }
-    error("sizeof演算子の適用が不適切です");
+    error("型の判別ができませんでした");
 }
 
 void program(Node **nodes) {

@@ -123,7 +123,7 @@ int add(int n1, int n2, int n3, int n4, int n5, int n6) {
 }'
 try 3   'int main() {
     int x;
-    int y;
+    int *y;
     x = 3;
     y = &x;
     return *y;
@@ -131,10 +131,10 @@ try 3   'int main() {
 try 3   'int main() {
     int x;
     int y;
-    int z;
+    int *z;
     x = 3;
     y = 5;
-    z = &y + 8;
+    z = &y + 4;
     return *z;
 }'
 try 3   'int main() {
@@ -163,15 +163,14 @@ try 12  'int main() {
     q = p + 2;
     return *q + *(p + 3);
 }'
-# 今はintを8Byteで進めている
-try 8   'int main() { int x; return sizeof(x); }'
+try 4   'int main() { int x; return sizeof(x); }'
 try 8   'int main() { int *x; return sizeof(x); }'
 try 8   'int main() { int *x; return sizeof(x + 10); }'
-try 8   'int main() { int *x; return sizeof(*x); }'
-try 8   'int main() { int x; return sizeof(*&x); }'
+try 4   'int main() { int *x; return sizeof(*x); }'
+try 4   'int main() { int x; return sizeof(*&x); }'
 try 8   'int main() { int x; return sizeof(&*&x); }'
-try 8   'int main() { return sizeof(1); }'
-try 8   'int main() { return sizeof(sizeof 1); }'
+try 4   'int main() { return sizeof(1); }'
+try 4   'int main() { return sizeof(sizeof 1); }'
 try 3   'int main() {
     int a[2];
     *a = 1;
@@ -180,8 +179,7 @@ try 3   'int main() {
     p = a;
     return *p + *(p + 1);
 }'
-# 今はintを8Byteで進めている
-try 32  'int main() { int a[4]; return sizeof(a); }'
+try 16  'int main() { int a[4]; return sizeof(a); }'
 try 32  'int main() { int *a[4]; return sizeof(a); }'
 try 10  'int main() { int a[4]; a[2] = 10; return a[2]; }'
 try 100 'int main() { int a[4]; a[1] = 100; return 1[a]; }'
