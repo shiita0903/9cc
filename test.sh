@@ -188,6 +188,7 @@ try 10  'int main() {
 }'
 try 16  'int main() { int a[4]; return sizeof(a); }'
 try 32  'int main() { int *a[4]; return sizeof(a); }'
+try 7   'int main() { char x[7]; return sizeof(x); }'
 try 10  'int main() { int a[4]; a[2] = 10; return a[2]; }'
 try 100 'int main() { int a[4]; a[1] = 100; return 1[a]; }'
 try 100 'int x;
@@ -222,8 +223,15 @@ try 3   'int main() {
     y = 4;
     return x[0] + y;
 }'
-try 104 'int main() {char *x; x = "hello world!"; return x[0]; }'
-try 119 'int main() {char *x; x = "hello world!"; return x[6]; }'
-try 33  'int main() {char *x; x = "hello world!"; return x[11]; }'
+try 104 'int main() { char *x; x = "hello world!"; return x[0]; }'
+try 119 'int main() { char *x; x = "hello world!"; return x[6]; }'
+try 33  'int main() { char *x; x = "hello world!"; return x[11]; }'
+try 5   'char a;
+char b;
+int main() {
+    a = -1;
+    b = 6;
+    return a + b;
+}'
 
 echo OK

@@ -15,16 +15,7 @@ void gen_left_value(Node *node) {
         printf("  push rax\n");
         break;
     case ND_GVAR:
-        switch (node->type->t_kw) {
-        // TODO: 命令がわからないのでグローバルのcharは保留
-        case INT:
-            printf("  lea eax, %.*s\n", node->len, node->name);
-            break;
-        default:
-            printf("  lea rax, %.*s\n", node->len, node->name);
-            break;
-        }
-
+        printf("  lea rax, %.*s\n", node->len, node->name);
         printf("  push rax\n");
         break;
     case ND_DEREF:
