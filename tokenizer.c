@@ -377,32 +377,31 @@ Type *expect_type() {
     return type;
 }
 
+void consume_array(Type **type) {
+    int size[MAX_ARRAY_DIMENS], array_dimen = 0;
+    while (consume("[")) {
+        size[array_dimen++] = expect_number();
+        expect("]");
+    }
+    for (int i = array_dimen - 1; i >= 0; i--)
+        *type = new_array_type(*type, size[i]);
+}
+
 void define_local_variable(Type **type, int *offset) {
     if (token->kind != TK_IDENT)
         error_at(token->str, "変数ではありません");
 
     char *name = token->str;
-    int len = token->len, size = 0;
+    int len = token->len;
     token = token->next;
-    if (consume("[")) {
-        size = expect_number();
-        expect("]");
-    }
-    if (size > 0) *type = new_array_type(*type, size);
 
+    consume_array(type);
     Var *var = new_lvar(*type, name, len);
     if (offset != NULL) *offset = var->offset;
 }
 
 void define_global_variable(Type **type, char *name, int len) {
-    int size = 0;
-    // TODO: 2次元配列以上の実装が必要
-    if (consume("[")) {
-        size = expect_number();
-        expect("]");
-    }
-    if (size > 0) *type = new_array_type(*type, size);
-
+    consume_array(type);
     Var *var = new_gvar(*type, name, len);
 }
 

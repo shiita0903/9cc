@@ -152,7 +152,7 @@ int t33() {
     int *z;
     x = 3;
     y = 5;
-    z = &y + 4;
+    z = &y + 1;
     return *z;
 }
 
@@ -288,6 +288,24 @@ int t61() {
     return x;
 }
 
+int t62() {
+    int x[2][2];
+    x[0][0] = 1;
+    x[0][1] = 2;
+    x[1][0] = 3;
+    x[1][1] = 4;
+    return x[0][1] + x[1][0];
+}
+
+int t63() {
+    char x[2][3][5];
+    x[0][2][0] = 23;
+    x[0][2][1] = -1;
+    x[0][2][2] = 2;
+    x[1][0][4] = 3;
+    return x[0][2][1] + x[1][0][4];
+}
+
 int main() {
     println("*** start arithmetic test ***");
     {
@@ -400,6 +418,14 @@ int main() {
     {
         test(t60(), 10);
         test(t61(), 15);
+        reset_test_no();
+        println("");
+    }
+
+    println("*** start multi dimensional array test ***");
+    {
+        test(t62(), 5);
+        test(t63(), 2);
         reset_test_no();
         println("");
     }

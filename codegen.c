@@ -5,9 +5,6 @@ void gen(Node *node);
 long long if_sn = 0, while_sn = 0, for_sn = 0;
 
 void gen_left_value(Node *node) {
-    if (node->kind != ND_LVAR && node->kind != ND_GVAR && node->kind != ND_DEREF)
-        error("代入の左辺値が変数ではありません");
-
     switch (node->kind) {
     case ND_LVAR:
         printf("  mov rax, rbp\n");
@@ -21,22 +18,33 @@ void gen_left_value(Node *node) {
     case ND_DEREF:
         gen(node->lhs);
         break;
+    default:
+        error("代入の左辺値が変数ではありません");
     }
 }
 
 void gen_pointer_adjust(Node *node, char *r_name) {
-    // TODO: ポインタのポインタのデリファレンスは今は考えない
-    if (is_pointer(node)) {
-        switch (node->type->ptr_to->t_kw) {
+    Type *type = get_node_type(node);
+
+    switch (type->t_kw) {
+    case PTR:
+        switch(type->ptr_to->t_kw) {
         case INT:
             printf("  shl %s, 2\n", r_name);
             break;
         case CHAR:
             break;
-        default:
+        case PTR:
             printf("  shl %s, 3\n", r_name);
             break;
+        case ARRAY:
+            error("配列のポインタは未実装です");
+            break;
         }
+        break;
+    case ARRAY:
+        printf("  imul %s, %d\n", r_name, get_type_size(type->ptr_to));
+        break;
     }
 }
 
@@ -303,13 +311,13 @@ void code_gen(Node **nodes) {
     int *lens = calloc(MAX_STR_COUNT, sizeof(int));
     char **names = calloc(MAX_NODE_COUNT, sizeof(char *));
     int cnt = get_strs(&names, &lens);
+
     printf(".data\n");
     for (int i = 0; i < cnt; i++) {
         printf(".Lstr%d:\n", i);
         printf("  .string \"%.*s\"\n", lens[cnt - i - 1], names[cnt - i - 1]);
     }
 
-    printf(".bss\n");
     for (; *n != NULL && (*n)->kind == ND_GVAR_DEF; n++)
         gen(*n);
 

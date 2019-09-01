@@ -9,6 +9,7 @@
 
 #define MAX_NODE_COUNT 1000     // 定義可能な関数とグローバル変数の数
 #define MAX_STR_COUNT 10000     // 定義可能な文字列リテラルの数
+#define MAX_ARRAY_DIMENS 10     // 定義可能な多次元配列の次元数
 
 typedef enum {
     ND_ADD,
@@ -86,7 +87,6 @@ void define_global_variable(Type **type, char *name, int len);
 bool at_eof(void);
 
 // parser.c
-bool is_pointer(Node *n);
 Type *get_node_type(Node *node);
 void program(Node **nodes);
 
@@ -96,3 +96,5 @@ void code_gen(Node **nodes);
 // util.c
 void error(char *fmt, ...);
 char *read_file(char *path);
+void print_type(Type *type);
+void print_node(Node *node);
