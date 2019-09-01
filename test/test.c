@@ -272,6 +272,22 @@ int t59() {
     return a + b;
 }
 
+int t60() {
+    int x;  // x
+    // comment
+    x = 10;
+    return x;
+}
+
+int t61() {
+    int x;  /* x
+    x = 20;
+    comment!
+    */
+    x = 15;
+    return x;
+}
+
 int main() {
     println("*** start arithmetic test ***");
     {
@@ -379,6 +395,13 @@ int main() {
         reset_test_no();
         println("");
     }
-    
+
+    println("*** start comment test ***");
+    {
+        test(t60(), 10);
+        test(t61(), 15);
+        reset_test_no();
+        println("");
+    }
     return 0;
 }

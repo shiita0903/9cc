@@ -149,6 +149,14 @@ Token *new_token(TokenKind kind, Token *cur, char *str, int len) {
     return tok;
 }
 
+bool is_one_line_comment(char *p) {
+    return !memcmp(p, "//", 2);
+}
+
+bool is_multi_line_comment(char *p) {
+    return !memcmp(p, "/*", 2);
+}
+
 /** 予約語だった場合には文字数を、そうでないなら0を返す */
 int is_reserved_word(char *p) {
     char *words[8] = { "return", "if", "else", "while", "for", "int", "char", "sizeof" };
@@ -210,6 +218,18 @@ void *tokenize(char *f_name) {
     while (*p) {
         if (isspace(*p)) {
             p++;
+            continue;
+        }
+
+        if (is_one_line_comment(p)) {
+            while (*p != '\n') p++;
+            continue;
+        }
+
+        if (is_multi_line_comment(p)) {
+            char *q = strstr(p + 2, "*/");
+            if (q == NULL) error_at(p, "コメントが閉じられていません");
+            p = q + 2;
             continue;
         }
 
