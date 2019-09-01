@@ -306,7 +306,7 @@ void code_gen(Node **nodes) {
     printf(".data\n");
     for (int i = 0; i < cnt; i++) {
         printf(".Lstr%d:\n", i);
-        printf("  .string \"%.*s\"\n", lens[i], names[i]);
+        printf("  .string \"%.*s\"\n", lens[cnt - i - 1], names[cnt - i - 1]);
     }
 
     printf(".bss\n");

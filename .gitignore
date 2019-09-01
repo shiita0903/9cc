@@ -2,3 +2,6 @@
 *.o
 tmp*
 9cc
+
+/test/test
+/test/test.s

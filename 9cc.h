@@ -95,3 +95,4 @@ void code_gen(Node **nodes);
 
 // util.c
 void error(char *fmt, ...);
+char *read_file(char *path);

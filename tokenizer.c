@@ -33,6 +33,7 @@ struct Str {
 };
 
 long long str_sn = 0;
+char *file_name;
 char *user_input;
 Token *token;
 Var *globals;
@@ -43,8 +44,18 @@ void error_at(char *loc, char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
 
-    int pos = loc - user_input;
-    fprintf(stderr, "%s\n", user_input);
+    char *line = loc, *end = loc;
+    while (user_input < line && line[-1] != '\n') line--;
+    while (*end != '\n') end++;
+
+    int line_num = 1;
+    for (char *p = user_input; p < line; p++)
+        if (*p == '\n') line_num++;
+
+    int indent = fprintf(stderr, "%s:%d: ", file_name, line_num);
+    fprintf(stderr, "%.*s\n", (int)(end - line), line);
+
+    int pos = loc - line + indent;
     fprintf(stderr, "%*s", pos, "");
     fprintf(stderr, "^ ");
     vfprintf(stderr, fmt, ap);
@@ -187,7 +198,9 @@ void clear_lvar(void) {
     locals = NULL;
 }
 
-void *tokenize(char *p) {
+void *tokenize(char *f_name) {
+    file_name = f_name;
+    char *p = read_file(f_name);
     user_input = p;
     Token head;
     head.next = NULL;
