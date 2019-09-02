@@ -25,6 +25,7 @@ typedef enum {
     ND_LT,
     ND_LE,
     ND_ASSIGN,
+    ND_INIT,
     ND_LVAR,
     ND_GVAR,
     ND_GVAR_DEF,
@@ -67,6 +68,7 @@ struct Node {
 // tokenizer.c
 Type *new_type(TypeKeyword t_kw);
 Type *new_ptr_type(Type *type);
+Type *get_array_base_type(Type *type);
 int get_type_size(Type *type);
 int get_strs(char ***name, int **len);
 int lvar_offset(void);

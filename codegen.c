@@ -108,6 +108,7 @@ void gen(Node *node) {
     if (node == NULL) return;
 
     Node *cur;
+    Type *type;
     int arg_num;
     char *r_name[3][6] = {
         { "rdi", "rsi", "rdx", "rcx", "r8", "r9" },
@@ -155,6 +156,46 @@ void gen(Node *node) {
         gen_left_value(node->lhs);
         gen(node->rhs);
         assign_value(node->lhs);
+        return;
+    case ND_INIT:
+        type = node->lhs->type;
+        if (type->t_kw == ARRAY) {
+            int array_count = get_type_size(type) / get_type_size(get_array_base_type(type));
+            int node_cnt = 0;
+            for (Node *n = node->rhs; n != NULL; n = n->next)
+                node_cnt++;
+
+            // ゼロ埋め
+            for (int i = 0; i < array_count - node_cnt; i++)
+                printf("  push 0\n");
+            // 初期化要素の評価
+            for (Node *n = node->rhs; n != NULL; n = n->next)
+                gen(n);
+
+            gen_left_value(node->lhs);
+            printf("  pop rax\n");
+            TypeKeyword t_kw = get_array_base_type(type)->t_kw;
+            for (int i = 0; i < array_count; i++) {
+                switch (t_kw) {
+                case INT:
+                    printf("  pop rdi\n");
+                    printf("  mov [rax], edi\n");
+                    printf("  add rax, 4\n");
+                    break;
+                case CHAR:
+                    printf("  pop rdi\n");
+                    printf("  mov [rax], dil\n");
+                    printf("  add rax, 1\n");
+                    break;
+                case PTR:
+                    printf("  pop rdi\n");
+                    printf("  mov [rax], rdi\n");
+                    printf("  add rax, 8\n");
+                    break;
+                }
+            }
+        }
+        else error("初期化に失敗しました");
         return;
     case ND_IF:
         gen(node->lhs);

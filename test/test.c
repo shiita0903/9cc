@@ -306,6 +306,38 @@ int t63() {
     return x[0][2][1] + x[1][0][4];
 }
 
+int t64() {
+    int x = 17;
+    return x;
+}
+
+int t65() {
+    char a = 1;
+    char b = -7;
+    char c = 29;
+    return a + b + c;
+}
+
+int t66() {
+    int x[3] = {1, 5, 3};
+    return x[0] + x[1] + x[2];
+}
+
+int t67() {
+    char x[3] = {1, -5, 3};
+    return x[0] + x[1] + x[2];
+}
+
+int t68() {
+    int x[3] = {1, 5, 3};
+    return x[0] + x[1];
+}
+
+int t69() {
+    int x[3] = {1, 5};
+    return x[0] + x[2];
+}
+
 int main() {
     println("*** start arithmetic test ***");
     {
@@ -426,6 +458,17 @@ int main() {
     {
         test(t62(), 5);
         test(t63(), 2);
+        reset_test_no();
+        println("");
+    }
+    println("*** start initialize test ***");
+    {
+        test(t64(), 17);
+        test(t65(), 23);
+        test(t66(), 9);
+        test(t67(), -1);
+        test(t68(), 6);
+        test(t69(), 1);
         reset_test_no();
         println("");
     }

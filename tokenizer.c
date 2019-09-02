@@ -81,6 +81,11 @@ Type *new_array_type(Type *type, int size) {
     return t;
 }
 
+Type *get_array_base_type(Type *type) {
+    while (type->t_kw == ARRAY) type =type->ptr_to;
+    return type;
+}
+
 int get_type_size(Type *type) {
     switch (type->t_kw) {
     case INT:
@@ -397,7 +402,7 @@ void define_local_variable(Type **type, int *offset) {
 
     consume_array(type);
     Var *var = new_lvar(*type, name, len);
-    if (offset != NULL) *offset = var->offset;
+    *offset = var->offset;
 }
 
 void define_global_variable(Type **type, char *name, int len) {

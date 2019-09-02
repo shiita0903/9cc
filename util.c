@@ -49,6 +49,8 @@ void print_t_kw(Type *type) {
     case ARRAY:
         printf("ARRAY(%d) ", type->array_size);
         break;
+    default:
+        error("型が出力に対応していません");
     }
 }
 
@@ -96,6 +98,9 @@ void print_node_kind(NodeKind kind) {
     case ND_LE:
         printf("ND_LE\n");
         break;
+    case ND_INIT:
+        printf("ND_INIT\n");
+        break;
     case ND_ASSIGN:
         printf("ND_ASSIGN\n");
         break;
@@ -134,6 +139,8 @@ void print_node_kind(NodeKind kind) {
         break;
     case ND_DEREF:
         printf("ND_DEREF\n");
+    default:
+        error("ノードが出力に対応していません");
     }
 }
 

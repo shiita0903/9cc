@@ -84,6 +84,7 @@ Type *get_node_type(Node *node) {
     case ND_BLOCK:
     case ND_RETURN:
     case ND_FUNC_DEF:
+    case ND_INIT:
         error("型の判別ができませんでした");
     }
 
@@ -213,9 +214,26 @@ Node *stmt(void) {
         expect(";");
     }
     else if (consume_type(&type)) {
-        define_local_variable(&type, NULL);
+        int offset;
+        define_local_variable(&type, &offset);
+        if (consume("=")) {
+            // 面倒なので1次元の初期化のみ対応
+            if (consume("{")) {
+                node = equality();
+
+                Node *tmp;
+                while (consume(",")) {
+                    tmp = equality();
+                    tmp->next = node;
+                    node = tmp;
+                }
+                expect("}");
+                node = new_node(ND_INIT, new_node_lvar(type, offset), node);
+            }
+            else node = new_node(ND_ASSIGN, new_node_lvar(type, offset), equality());
+        }
+        else node = NULL;
         expect(";");
-        node = NULL;
     }
     else {
         node = expr();
