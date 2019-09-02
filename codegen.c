@@ -148,10 +148,43 @@ void gen(Node *node) {
         gen_left_value(node);
         get_addr_value(node, false);
         return;
-    case ND_GVAR_DEF:
+    case ND_GVAR_DEF: {
+        int type_size = get_type_size(node->type), filled_size = 0;
         printf("%.*s:\n", node->len, node->name);
-        printf("  .zero %d\n", get_type_size(node->type));
+
+        if (node->lhs != NULL) {
+            TypeKeyword t_kw = get_array_base_type(node->type)->t_kw;
+
+            node = node->lhs;
+            if (node->kind == ND_STR) {
+                printf("  .string \"%.*s\"\n", node->len, node->name);
+                filled_size = node->len;
+            }
+            else {
+                while (node != NULL) {
+                    switch (t_kw) {
+                    case INT:
+                        printf("  .long %d\n", node->val);
+                        filled_size += 4;
+                        break;
+                    case CHAR:
+                        printf("  .byte %d\n", node->val);
+                        filled_size++;
+                        break;
+                    case PTR:
+                        printf("  .quad %d\n", node->val);
+                        filled_size += 8;
+                        break;
+                    }
+                    node = node->lhs;
+                }
+            }
+        }
+
+        if (type_size - filled_size > 0)
+            printf("  .zero %d\n", type_size - filled_size);
         return;
+    }
     case ND_ASSIGN:
         gen_left_value(node->lhs);
         gen(node->rhs);

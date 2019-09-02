@@ -3,6 +3,10 @@ int y1;
 char a;
 char b;
 
+int global_a = 3;
+int global_b;
+char global_c[10] = "foobar";
+
 int t1() { return 0; }
 
 int t2() { return 42; }
@@ -348,6 +352,18 @@ int t71() {
     return a[10] + a[11];
 }
 
+int t72() {
+    return global_a;
+}
+
+int t73() {
+    return global_b;
+}
+
+int t74() {
+    return global_c[4] + global_c[8];
+}
+
 int main() {
     println("*** start arithmetic test ***");
     {
@@ -471,6 +487,7 @@ int main() {
         reset_test_no();
         println("");
     }
+
     println("*** start initialize test ***");
     {
         test(t64(), 17);
@@ -481,6 +498,9 @@ int main() {
         test(t69(), 1);
         test(t70(), 100);
         test(t71(), 100);
+        test(t72(), 3);
+        test(t73(), 0);
+        test(t74(), 97);
         reset_test_no();
         println("");
     }

@@ -131,8 +131,31 @@ Node *fragment(void) {
 
 Node *global(Type *type, char *name, int len) {
     define_global_variable(&type, name, len);
+    Node *node = new_node_ident(ND_GVAR_DEF, type, name, len);
+
+    if (consume("=")) {
+        char *n;
+        int l, sn;
+
+        if (consume_embedded_str(&n, &l)) {
+            node->lhs = new_node_str(-1);
+            node->lhs->name = n;
+            node->lhs->len = l;
+        }
+        else if (consume("{")) {
+            // 面倒なので1次元の初期化のみ対応
+            Node *tmp = node;
+            do {
+                tmp->lhs = new_node_num(expect_number());
+                tmp = tmp->lhs;
+            } while (consume(","));
+            expect("}");
+        }
+        else node->lhs = new_node_num(expect_number());
+        // グローバル変数のアドレス等の対応はしない
+    }
     expect(";");
-    return new_node_ident(ND_GVAR_DEF, type, name, len);
+    return node;
 }
 
 Node *func(Type *return_type, char *name, int len) {
@@ -225,7 +248,7 @@ Node *stmt(void) {
 
             if (type->t_kw == PTR && type->ptr_to->t_kw == CHAR && consume_str(&sn))
                 node = new_node(ND_ASSIGN, lhs, new_node_str(sn));
-            else if (consume_local_str(&name, &len)) {
+            else if (consume_embedded_str(&name, &len)) {
                 node = NULL;
                 for (int i = 0; i < len; i++) {
                     tmp = new_node_num(name[i]);
