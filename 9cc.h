@@ -80,6 +80,7 @@ bool consume_type(Type **type);
 bool consume_lvar(Type **type, int *offset);
 bool consume_gvar(Type **type, char **name, int *len);
 bool consume_str(int *sn);
+bool consume_local_str(char **name, int *len);
 void expect(char *name);
 int expect_number(void);
 void expect_ident(char **name, int *len);

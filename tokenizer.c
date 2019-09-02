@@ -347,6 +347,14 @@ bool consume_str(int *sn) {
     return true;
 }
 
+bool consume_local_str(char **name, int *len) {
+    if (token->kind != TK_STR) return false;
+    *name = token->str;
+    *len = token->len;
+    token = token->next;
+    return true;
+}
+
 void expect(char *name) {
     if (token->kind != TK_RESERVED ||
         strlen(name) != token->len ||

@@ -338,6 +338,11 @@ int t69() {
     return x[0] + x[2];
 }
 
+int t70() {
+    char a[12] = "hello world";
+    return a[10] + a[11];
+}
+
 int main() {
     println("*** start arithmetic test ***");
     {
@@ -469,6 +474,7 @@ int main() {
         test(t67(), -1);
         test(t68(), 6);
         test(t69(), 1);
+        test(t70(), 100);
         reset_test_no();
         println("");
     }

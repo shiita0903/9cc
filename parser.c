@@ -217,11 +217,22 @@ Node *stmt(void) {
         int offset;
         define_local_variable(&type, &offset);
         if (consume("=")) {
-            // 面倒なので1次元の初期化のみ対応
-            if (consume("{")) {
-                node = equality();
+            Node *tmp;
+            char *name;
+            int len;
 
-                Node *tmp;
+            if (consume_local_str(&name, &len)) {
+                node = NULL;
+                for (int i = 0; i < len; i++) {
+                    tmp = new_node_num(name[i]);
+                    tmp->next = node;
+                    node = tmp;
+                }
+                node = new_node(ND_INIT, new_node_lvar(type, offset), node);
+            }
+            else if (consume("{")) {
+                // 面倒なので1次元の初期化のみ対応
+                node = equality();
                 while (consume(",")) {
                     tmp = equality();
                     tmp->next = node;
