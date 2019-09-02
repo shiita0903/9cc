@@ -216,19 +216,23 @@ Node *stmt(void) {
     else if (consume_type(&type)) {
         int offset;
         define_local_variable(&type, &offset);
+        Node *lhs = new_node_lvar(type, offset);
+
         if (consume("=")) {
             Node *tmp;
             char *name;
-            int len;
+            int len, sn;
 
-            if (consume_local_str(&name, &len)) {
+            if (type->t_kw == PTR && type->ptr_to->t_kw == CHAR && consume_str(&sn))
+                node = new_node(ND_ASSIGN, lhs, new_node_str(sn));
+            else if (consume_local_str(&name, &len)) {
                 node = NULL;
                 for (int i = 0; i < len; i++) {
                     tmp = new_node_num(name[i]);
                     tmp->next = node;
                     node = tmp;
                 }
-                node = new_node(ND_INIT, new_node_lvar(type, offset), node);
+                node = new_node(ND_INIT, lhs, node);
             }
             else if (consume("{")) {
                 // 面倒なので1次元の初期化のみ対応
@@ -239,9 +243,9 @@ Node *stmt(void) {
                     node = tmp;
                 }
                 expect("}");
-                node = new_node(ND_INIT, new_node_lvar(type, offset), node);
+                node = new_node(ND_INIT, lhs, node);
             }
-            else node = new_node(ND_ASSIGN, new_node_lvar(type, offset), equality());
+            else node = new_node(ND_ASSIGN, lhs, equality());
         }
         else node = NULL;
         expect(";");
